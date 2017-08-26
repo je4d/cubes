@@ -145,6 +145,13 @@ struct pixel_grid
         block shape;
     };
 
+    static constexpr auto front_cell_height = 4;
+    static constexpr auto front_cell_skew = 2;
+    static constexpr auto front_cell_width = 7;
+
+    static constexpr auto top_cell_height = 2;
+    static constexpr auto cell_width = 7;
+
     void draw(int row, int col, face f, block b)
     {
         if (m_pixels[row][col].fg != -1)
@@ -157,26 +164,17 @@ struct pixel_grid
 
     void draw_top(int x, int y, face f)
     {
-        int row = 4 - 2 * y + 2 * x;
-        int col = 6 * x + 6 * y;
+        int row = (top_cell_height * 2) - top_cell_height * y + top_cell_height * x;
+        int col = cell_width * x + cell_width * y;
 
-        draw(row+0, col+5,  f, block::lower_half);
-        draw(row+0, col+6,  f, block::lower_half);
+        draw(row+1, col+4, f, block::lower_half);
+        draw(row+1, col+5, f, block::upper_left_quadrant_missing);
+        draw(row+1, col+6, f, block::full);
+        draw(row+1, col+7, f, block::upper_right_quadrant_missing);
+        draw(row+1, col+8, f, block::lower_half);
 
-        draw(row+1, col+1,  f, block::lower_right_quadrant);
-        draw(row+1, col+2,  f, block::lower_half);
-        draw(row+1, col+3,  f, block::full);
-        draw(row+1, col+4,  f, block::full);
-        draw(row+1, col+5,  f, block::full);
-        draw(row+1, col+6,  f, block::full);
-        draw(row+1, col+7,  f, block::full);
-        draw(row+1, col+8,  f, block::full);
-        draw(row+1, col+9,  f, block::lower_half);
-        draw(row+1, col+10, f, block::lower_left_quadrant);
-
-        draw(row+2, col+0,  f, block::lower_right_quadrant);
-        draw(row+2, col+1,  f, block::full);
-        draw(row+2, col+2,  f, block::full);
+        draw(row+2, col+1,  f, block::lower_half);
+        draw(row+2, col+2,  f, block::upper_left_quadrant_missing);
         draw(row+2, col+3,  f, block::full);
         draw(row+2, col+4,  f, block::full);
         draw(row+2, col+5,  f, block::full);
@@ -184,24 +182,28 @@ struct pixel_grid
         draw(row+2, col+7,  f, block::full);
         draw(row+2, col+8,  f, block::full);
         draw(row+2, col+9,  f, block::full);
-        draw(row+2, col+10, f, block::full);
-        draw(row+2, col+11, f, block::lower_left_quadrant);
+        draw(row+2, col+10, f, block::upper_right_quadrant_missing);
+        draw(row+2, col+11, f, block::lower_half);
 
-        draw(row+3, col+3,  f, block::full);
+        draw(row+3, col+2,  f, block::upper_right_quadrant);
+        draw(row+3, col+3,  f, block::upper_half);
         draw(row+3, col+4,  f, block::full);
         draw(row+3, col+5,  f, block::full);
         draw(row+3, col+6,  f, block::full);
         draw(row+3, col+7,  f, block::full);
         draw(row+3, col+8,  f, block::full);
+        draw(row+3, col+9,  f, block::upper_half);
+        draw(row+3, col+10, f, block::upper_left_quadrant);
 
-        draw(row+4, col+5,  f, block::upper_half);
+        draw(row+4, col+5,  f, block::upper_right_quadrant);
         draw(row+4, col+6,  f, block::upper_half);
+        draw(row+4, col+7,  f, block::upper_left_quadrant);
 
     }
     void draw_left(int x, int y, face f)
     {
-        int row = 14 - 4*y + 2 * x;
-        int col = 6*x;
+        int row = (front_cell_height * 2 + top_cell_height * 3) - front_cell_height * y + front_cell_skew * x + 1;
+        int col = front_cell_width*x;
         draw(row+0, col+0, f, block::lower_half);
         draw(row+0, col+1, f, block::lower_left_quadrant);
 
@@ -216,7 +218,7 @@ struct pixel_grid
         draw(row+2, col+2, f, block::full);
         draw(row+2, col+3, f, block::full);
         draw(row+2, col+4, f, block::full);
-        draw(row+2, col+5, f, block::upper_right_quadrant_missing);
+        draw(row+2, col+5, f, block::full);
 
         draw(row+3, col+0, f, block::full);
         draw(row+3, col+1, f, block::full);
@@ -225,23 +227,18 @@ struct pixel_grid
         draw(row+3, col+4, f, block::full);
         draw(row+3, col+5, f, block::full);
 
-        draw(row+4, col+0, f, block::upper_half);
-        draw(row+4, col+1, f, block::lower_left_quadrant_missing);
-        draw(row+4, col+2, f, block::full);
-        draw(row+4, col+3, f, block::full);
+        draw(row+4, col+2, f, block::upper_half);
+        draw(row+4, col+3, f, block::lower_left_quadrant_missing);
         draw(row+4, col+4, f, block::full);
         draw(row+4, col+5, f, block::full);
 
-        draw(row+5, col+3, f, block::upper_half);
-        draw(row+5, col+4, f, block::lower_left_quadrant_missing);
-        draw(row+5, col+5, f, block::full);
-
-        draw(row+6, col+5, f, block::upper_right_quadrant);
+        draw(row+5, col+5, f, block::upper_half);
     }
     void draw_right(int x, int y, face f)
     {
-        int row = 18 - 4*y - 2 * x;
-        int col = 6*(x+3);
+        int row = (front_cell_height * 2 + front_cell_skew * 2 +  top_cell_height * 3) - front_cell_height * y
+                  - front_cell_skew * x + 1;
+        int col = front_cell_width*(x+3);
 
         draw(row+0, col+4, f, block::lower_right_quadrant);
         draw(row+0, col+5, f, block::lower_half);
@@ -252,7 +249,7 @@ struct pixel_grid
         draw(row+1, col+4, f, block::full);
         draw(row+1, col+5, f, block::full);
 
-        draw(row+2, col+0, f, block::upper_left_quadrant_missing);
+        draw(row+2, col+0, f, block::full);
         draw(row+2, col+1, f, block::full);
         draw(row+2, col+2, f, block::full);
         draw(row+2, col+3, f, block::full);
@@ -268,16 +265,10 @@ struct pixel_grid
 
         draw(row+4, col+0, f, block::full);
         draw(row+4, col+1, f, block::full);
-        draw(row+4, col+2, f, block::full);
-        draw(row+4, col+3, f, block::full);
-        draw(row+4, col+4, f, block::lower_right_quadrant_missing);
-        draw(row+4, col+5, f, block::upper_half);
+        draw(row+4, col+2, f, block::lower_right_quadrant_missing);
+        draw(row+4, col+3, f, block::upper_half);
 
-        draw(row+5, col+0, f, block::full);
-        draw(row+5, col+1, f, block::lower_right_quadrant_missing);
-        draw(row+5, col+2, f, block::upper_half);
-
-        draw(row+6, col+0, f, block::upper_left_quadrant);
+        draw(row+5, col+0, f, block::upper_half);
     }
 
     friend std::ostream& operator<<(std::ostream& o, const pixel_grid& g)
@@ -308,12 +299,12 @@ struct pixel_grid
                       << termcolor::reset;
                 }
             }
-            o << '\n';
+            o << "\n";
         }
         return o;
     }
     constexpr static char rows = 25;
-    constexpr static char cols = 36;
+    constexpr static char cols = 41;
     pixel m_pixels[rows][cols];
 
 };
