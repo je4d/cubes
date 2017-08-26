@@ -1,9 +1,12 @@
+#ifndef CUBE_HPP
+#define CUBE_HPP
 
 #include <array>
 #include <cstdint>
 #include <bitset>
 #include <sstream>
 
+/*
 auto pc_hdr = [] { std::cout << "Empty   DFR     DBR     DBL     DFL     UFR     UBR     UBL     UFL\n"; };
 auto pc = [](auto corners) {
     std::ostringstream oss;
@@ -19,6 +22,7 @@ auto pc = [](auto corners) {
     }
     std::cout << std::endl;
 };
+*/
 
 enum face : uint8_t
 {
@@ -655,3 +659,5 @@ struct cube
 };
 
 static_assert(sizeof(cube) == 16, "");
+
+#endif // CUBE_HPP
