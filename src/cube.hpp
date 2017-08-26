@@ -334,18 +334,10 @@ struct cube
     }
 
     template <edge_position... Edges>
-    constexpr static std::uint64_t edges_mask()
+    constexpr static std::uint64_t mask()
     {
         return (edge_mask(Edges) | ...);
     }
-
-    /*
-    template <edge Edge>
-    constexpr edge_orientation edge_orientation(std::uint64_t edges) const
-    {
-        return (edges >> edge_shift<Edge>)&0b1 ? flipped : unflipped;
-    }
-    */
 
     constexpr static edge_state edge_at(std::uint64_t edges, edge_position ep)
     {
@@ -356,13 +348,6 @@ struct cube
     {
         return 5 * static_cast<std::uint8_t>(pos);
     }
-
-    /*
-    template <corner_position Corner>
-    constexpr static std::uint8_t corner_shift()
-    {
-        return corner_shift(Corner);
-    }*/
 
     constexpr static std::uint64_t corner_mask()
     {
@@ -381,7 +366,7 @@ struct cube
     }
 
     template <corner_position... Corners>
-    constexpr static std::uint64_t corners_mask()
+    constexpr static std::uint64_t mask()
     {
         return (corner_mask<Corners>() | ...);
     }
@@ -462,7 +447,7 @@ struct cube
      * Moves
      */
 
-    std::uint64_t move_edge(std::uint64_t edges, edge_position from, edge_position to)
+    constexpr static std::uint64_t move(std::uint64_t edges, edge_position from, edge_position to)
     {
         return ((edges >> edge_shift(from))&0b11111) << edge_shift(to);
     }
@@ -474,7 +459,7 @@ struct cube
                ^ ((static_cast<std::uint64_t>(0b1) << edge_shift(Edges)) | ...);
     }
 
-    std::uint64_t move_corner(std::uint64_t corners, corner_position from, corner_position to)
+    constexpr static std::uint64_t move(std::uint64_t corners, corner_position from, corner_position to)
     {
         return ((corners >> corner_shift(from))&0b11111) << corner_shift(to);
     }
@@ -512,87 +497,161 @@ struct cube
                - ((u64_1 << corner_shift(Corners)) | ...);
     }
 
+
+    template <auto P1, auto P2, auto P3, auto P4>
+    constexpr static std::uint64_t rot_90(std::uint64_t pieces)
+    {
+        return (pieces & ~mask<P1, P2, P3, P4>())
+               | move(pieces, P1, P2)
+               | move(pieces, P2, P3)
+               | move(pieces, P3, P4)
+               | move(pieces, P4, P1);
+    }
+
+    template <edge_position   E1, edge_position   E2,
+              edge_position   E3, edge_position   E4,
+              corner_position C1, corner_position C2,
+              corner_position C3, corner_position C4>
+    cube &ud_90()
+    {
+        m_edges = flip_edges<E1, E2, E3, E4>(rot_90<E1, E2, E3, E4>(m_edges));
+        m_corners = rot_90<C1, C2, C3, C4>(m_corners);
+        return *this;
+    }
+
     cube& u()
     {
-        // No corner orientation change
-        // All U edges change orientation
         using namespace positions;
-        m_corners = (m_corners & ~corners_mask<UFL, UBL, UBR, UFR>())
-                    | move_corner(m_corners, UFL, UBL)
-                    | move_corner(m_corners, UBL, UBR)
-                    | move_corner(m_corners, UBR, UFR)
-                    | move_corner(m_corners, UFR, UFL);
-        m_edges = flip_edges<UF, UL, UB, UR>(
-                    (m_edges & ~edges_mask<UF, UL, UB, UR>())
-                    | move_edge(m_edges, UF, UL)
-                    | move_edge(m_edges, UL, UB)
-                    | move_edge(m_edges, UB, UR)
-                    | move_edge(m_edges, UR, UF));
-        return *this;
+        return ud_90<UF, UL, UB, UR, UFL, UBL, UBR, UFR>();
     }
-
+    cube& up()
+    {
+        using namespace positions;
+        return ud_90<UF, UR, UB, UL, UFL, UFR, UBR, UBL>();
+    }
     cube& d()
     {
-        // No corner orientation change
-        // All U edges change orientation
         using namespace positions;
-        m_corners = (m_corners & ~corners_mask<DFL, DBL, DBR, DFR>())
-                    | move_corner(m_corners, DFL, DBL)
-                    | move_corner(m_corners, DBL, DBR)
-                    | move_corner(m_corners, DBR, DFR)
-                    | move_corner(m_corners, DFR, DFL);
-        m_edges = flip_edges<DF, DL, DB, DR>(
-                    (m_edges & ~edges_mask<DF, DL, DB, DR>())
-                    | move_edge(m_edges, DF, DL)
-                    | move_edge(m_edges, DL, DB)
-                    | move_edge(m_edges, DB, DR)
-                    | move_edge(m_edges, DR, DL));
+        return ud_90<DF, DR, DB, DL, DFL, DFR, DBR, DBL>();
+    }
+    cube& dp()
+    {
+        using namespace positions;
+        return ud_90<DF, DL, DB, DR, DFL, DBL, DBR, DFR>();
+    }
+
+    template <edge_position   E1, edge_position   E2,
+              edge_position   E3, edge_position   E4,
+              corner_position C1, corner_position C2,
+              corner_position C3, corner_position C4,
+              bool            C1Cw>
+    cube &fblr_90()
+    {
+        constexpr auto CwC1 = C1Cw ? C1 : C2;
+        constexpr auto CwC2 = C1Cw ? C3 : C4;
+        constexpr auto AcwC1 = C1Cw ? C2 : C1;
+        constexpr auto AcwC2 = C1Cw ? C4 : C3;
+        m_corners = turn_corners_cw<CwC1, CwC2>(
+            turn_corners_acw<AcwC1, AcwC2>(rot_90<C1, C2, C3, C4>(m_corners)));
+        m_edges = rot_90<E1, E2, E3, E4>(m_edges);
         return *this;
     }
 
-    cube& r()
+    cube &f()
     {
-        // after move, UBR,DFR has gone CW, UFR,DBR have gone ACW
         using namespace positions;
-        m_corners = turn_corners_cw<UBR, DFR>(turn_corners_acw<UFR, DBR>(
-            ((m_corners & ~corners_mask<UFR, UBR, DBR, DFR>())
-            | move_corner(m_corners, UFR, UBR)
-            | move_corner(m_corners, UBR, DBR)
-            | move_corner(m_corners, DBR, DFR)
-            | move_corner(m_corners, DFR, UFR))));
-        m_edges = (m_edges & ~edges_mask<UR, BR, DR, FR>())
-                  | move_edge(m_edges, UR, BR)
-                  | move_edge(m_edges, BR, DR)
-                  | move_edge(m_edges, DR, FR)
-                  | move_edge(m_edges, FR, UR);
+        return fblr_90<UF, FR, DF, FL, UFL, UFR, DFR, DFL, false>();
+    }
+    cube &fp()
+    {
+        using namespace positions;
+        return fblr_90<UF, FL, DF, FR, UFL, DFL, DFR, UFR, false>();
+    }
+    cube &b()
+    {
+        using namespace positions;
+        return fblr_90<UB, BL, DB, BR, UBL, DBL, DBR, UBR, true>();
+    }
+    cube &bp()
+    {
+        using namespace positions;
+        return fblr_90<UB, BR, DB, BL, UBL, UBR, DBR, DBL, true>();
+    }
+    cube &l()
+    {
+        using namespace positions;
+        return fblr_90<UL, FL, DL, BL, UFL, DFL, DBL, UBL, true>();
+    }
+    cube &lp()
+    {
+        using namespace positions;
+        return fblr_90<UL, BL, DL, FL, UFL, UBL, DBL, DFL, true>();
+    }
+    cube &r() {
+        using namespace positions;
+        return fblr_90<UR, BR, DR, FR, UFR, UBR, DBR, DFR, false>();
+    }
+    cube &rp()
+    {
+        using namespace positions;
+        return fblr_90<UR, FR, DR, BR, UFR, DFR, DBR, UBR, false>();
+    }
+
+    template <auto P1, auto P2, auto P3, auto P4>
+    static std::uint64_t rot_180(std::uint64_t pieces)
+    {
+        return (pieces & ~mask<P1, P2, P3, P4>())
+               | move(pieces, P1, P3)
+               | move(pieces, P2, P4)
+               | move(pieces, P3, P1)
+               | move(pieces, P4, P2);
+    }
+
+    template <edge_position   E1, edge_position   E2,
+              edge_position   E3, edge_position   E4,
+              corner_position C1, corner_position C2,
+              corner_position C3, corner_position C4>
+    cube &udfblr_180()
+    {
+        m_edges = rot_180<E1, E2, E3, E4>(m_edges);
+        m_corners = rot_180<C1, C2, C3, C4>(m_corners);
         return *this;
     }
 
-    cube& l()
+    cube& u2()
     {
-        // after move, UBR,DFR has gone CW, UFR,DBR have gone ACW
         using namespace positions;
-        m_corners = turn_corners_cw<UFL, DBL>(turn_corners_acw<UBL, DFL>(
-            ((m_corners & ~corners_mask<UFL, UBL, DBL, DFL>())
-            | move_corner(m_corners, UFL, DFL)
-            | move_corner(m_corners, DFL, DBL)
-            | move_corner(m_corners, DBL, UBL)
-            | move_corner(m_corners, UBL, UFL))));
-        m_edges = (m_edges & ~edges_mask<UL, BL, DL, FL>())
-                  | move_edge(m_edges, UL, FL)
-                  | move_edge(m_edges, FL, DL)
-                  | move_edge(m_edges, DL, BL)
-                  | move_edge(m_edges, BL, UL);
-        return *this;
+        return udfblr_180<UF, UL, UB, UR, UFL, UBL, UBR, UFR>();
     }
+    cube& d2()
+    {
+        using namespace positions;
+        return udfblr_180<DF, DL, DB, DR, DFL, DBL, DBR, DFR>();
+    }
+    cube &r2() {
+        using namespace positions;
+        return udfblr_180<UR, BR, DR, FR, UFR, UBR, DBR, DFR>();
+    }
+    cube &l2()
+    {
+        using namespace positions;
+        return udfblr_180<UL, FL, DL, BL, UFL, DFL, DBL, UBL>();
+    }
+    cube &f2()
+    {
+        using namespace positions;
+        return udfblr_180<UF, FR, DF, FL, UFL, UFR, DFR, DFL>();
+    }
+    cube &b2()
+    {
+        using namespace positions;
+        return udfblr_180<UB, BL, DB, BR, UBL, DBL, DBR, UBR>();
+    }
+
 
     // layouts: P = position, O = orientation
-    std::uint64_t m_edges = 0; // layout: 0bPPPPO, mask: 0b11111<<(5*edge_num)
+    std::uint64_t m_edges   = 0; // layout: 0bPPPPO, mask: 0b11111<<(5*edge_num)
     std::uint64_t m_corners = 0; // layout: 0bPPPOO, mask: 0b11111<<(5*corner_num)
-
-    // U: edge orientation 
-    // D: edge orientation unchanged
-    // R: edge orientation unchanged
 };
 
 static_assert(sizeof(cube) == 16, "");

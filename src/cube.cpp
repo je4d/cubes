@@ -418,8 +418,13 @@ int main() {
                 );
     }
     */
-    cube c;
-    draw(c.l());
+    for (auto op :
+         {&cube::u, &cube::up, &cube::u2, &cube::d, &cube::dp, &cube::d2,
+          &cube::f, &cube::fp, &cube::f2, &cube::b, &cube::bp, &cube::b2,
+          &cube::l, &cube::lp, &cube::l2, &cube::r, &cube::rp, &cube::r2}) {
+        cube c;
+        draw((c.*op)());
+    }
 
 
     /*
