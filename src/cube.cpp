@@ -164,7 +164,7 @@ struct pixel_grid
 
     void draw_top(int x, int y, face f)
     {
-        int row = (top_cell_height * 2) - top_cell_height * y + top_cell_height * x;
+        int row = (top_cell_height * 2) - top_cell_height * y + top_cell_height * x - 1;
         int col = cell_width * x + cell_width * y;
 
         draw(row+1, col+4, f, block::lower_half);
@@ -198,11 +198,11 @@ struct pixel_grid
         draw(row+4, col+5,  f, block::upper_right_quadrant);
         draw(row+4, col+6,  f, block::upper_half);
         draw(row+4, col+7,  f, block::upper_left_quadrant);
-
     }
+
     void draw_left(int x, int y, face f)
     {
-        int row = (front_cell_height * 2 + top_cell_height * 3) - front_cell_height * y + front_cell_skew * x + 1;
+        int row = (front_cell_height * 2 + top_cell_height * 3) - front_cell_height * y + front_cell_skew * x;
         int col = front_cell_width*x;
         draw(row+0, col+0, f, block::lower_half);
         draw(row+0, col+1, f, block::lower_left_quadrant);
@@ -237,7 +237,7 @@ struct pixel_grid
     void draw_right(int x, int y, face f)
     {
         int row = (front_cell_height * 2 + front_cell_skew * 2 +  top_cell_height * 3) - front_cell_height * y
-                  - front_cell_skew * x + 1;
+                  - front_cell_skew * x;
         int col = front_cell_width*(x+3);
 
         draw(row+0, col+4, f, block::lower_right_quadrant);
@@ -303,7 +303,7 @@ struct pixel_grid
         }
         return o;
     }
-    constexpr static char rows = 25;
+    constexpr static char rows = 24;
     constexpr static char cols = 41;
     pixel m_pixels[rows][cols];
 
@@ -374,8 +374,8 @@ void draw(const cube& c)
     pg2.draw_right(1, 0, c.sticker_colour(positions::UB, B));
     pg2.draw_right(2, 0, c.sticker_colour(positions::UBR, B));
 
-    std::cout << pg << std::endl;
-    std::cout << pg2 << std::endl;
+    std::cout << pg;
+//    std::cout << pg2;
 }
 
 int main() {
