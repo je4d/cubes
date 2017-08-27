@@ -652,6 +652,10 @@ struct cube
         return udfblr_180<UB, BL, DB, BR, UBL, DBL, DBR, UBR>();
     }
 
+    friend bool operator == (const cube& a, const cube& b)
+    {
+        return a.m_edges == b.m_edges && a.m_corners == b.m_corners;
+    }
 
     // layouts: P = position, O = orientation
     std::uint64_t m_edges   = 0; // layout: 0bPPPPO, mask: 0b11111<<(5*edge_num)
