@@ -26,7 +26,7 @@ void apply_moves(cube& c, std::string scramble)
         normal,
         modifier
     } mode = normal;
-    face f;
+    face_position f;
     auto handle_modifier_state = [&](auto ch) {
         if (mode == modifier) {
             int move_index = 0;
@@ -35,7 +35,7 @@ void apply_moves(cube& c, std::string scramble)
             case '2': move_index  = 2; break;
             default: mode = normal; break;
             }
-            (c2.*(ops[f][move_index]))();
+            (c2.*(ops[static_cast<std::uint8_t>(f)][move_index]))();
         }
     };
     for (auto ch : scramble)
@@ -45,6 +45,7 @@ void apply_moves(cube& c, std::string scramble)
         {
             mode = modifier;
             switch (std::toupper(ch)) {
+                using namespace positions;
             case 'U': f = U; break;
             case 'D': f = D; break;
             case 'F': f = F; break;

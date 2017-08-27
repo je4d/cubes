@@ -12,7 +12,7 @@ auto pc = [](auto corners) {
     std::ostringstream oss;
     oss << std::bitset<9 * 5>(corners);
     auto bitstr = oss.str();
-    auto bsp    = bitstr.begin();
+   auto bsp    = bitstr.begin();
     for (int i = 0; i < 9 * 5; ++i) {
         if (i and not(i % 5))
             std::cout << "  ";
@@ -24,7 +24,24 @@ auto pc = [](auto corners) {
 };
 */
 
-enum face : uint8_t
+enum class face_colour : uint8_t
+{
+    U,
+    D,
+    F,
+    B,
+    L,
+    R,
+    none,
+};
+
+std::ostream &operator<<(std::ostream &o, face_colour f)
+{
+    static const char *names[] = {"U", "D", "F", "B", "L", "R", "-"};
+    return o << names[static_cast<std::uint8_t>(f)];
+}
+
+enum class face_position : uint8_t
 {
     U,
     D,
@@ -34,7 +51,7 @@ enum face : uint8_t
     R,
 };
 
-std::ostream &operator<<(std::ostream &o, face f)
+std::ostream &operator<<(std::ostream &o, face_position f)
 {
     static const char *names[] = {"U", "D", "F", "B", "L", "R"};
     return o << names[static_cast<std::uint8_t>(f)];
@@ -111,17 +128,18 @@ enum corner_orientation : std::uint8_t
 
 static constexpr corner_orientation co_invalid = static_cast<corner_orientation>(-1);
 
+namespace face_colours
+{
+    constexpr face_colour U = face_colour::U;
+    constexpr face_colour D = face_colour::D;
+    constexpr face_colour F = face_colour::F;
+    constexpr face_colour B = face_colour::B;
+    constexpr face_colour L = face_colour::L;
+    constexpr face_colour R = face_colour::R;
+}
+
 namespace pieces
 {
-    constexpr corner_piece UFL = corner_piece::UFL;
-    constexpr corner_piece UBL = corner_piece::UBL;
-    constexpr corner_piece UBR = corner_piece::UBR;
-    constexpr corner_piece UFR = corner_piece::UFR;
-    constexpr corner_piece DFL = corner_piece::DFL;
-    constexpr corner_piece DBL = corner_piece::DBL;
-    constexpr corner_piece DBR = corner_piece::DBR;
-    constexpr corner_piece DFR = corner_piece::DFR;
-
     constexpr edge_piece UF = edge_piece::UF;
     constexpr edge_piece UL = edge_piece::UL;
     constexpr edge_piece UB = edge_piece::UB;
@@ -134,18 +152,25 @@ namespace pieces
     constexpr edge_piece DL = edge_piece::DL;
     constexpr edge_piece DB = edge_piece::DB;
     constexpr edge_piece DR = edge_piece::DR;
+
+    constexpr corner_piece UFL = corner_piece::UFL;
+    constexpr corner_piece UBL = corner_piece::UBL;
+    constexpr corner_piece UBR = corner_piece::UBR;
+    constexpr corner_piece UFR = corner_piece::UFR;
+    constexpr corner_piece DFL = corner_piece::DFL;
+    constexpr corner_piece DBL = corner_piece::DBL;
+    constexpr corner_piece DBR = corner_piece::DBR;
+    constexpr corner_piece DFR = corner_piece::DFR;
 }
 
 namespace positions
 {
-    constexpr corner_position UFL = corner_position::UFL;
-    constexpr corner_position UBL = corner_position::UBL;
-    constexpr corner_position UBR = corner_position::UBR;
-    constexpr corner_position UFR = corner_position::UFR;
-    constexpr corner_position DFL = corner_position::DFL;
-    constexpr corner_position DBL = corner_position::DBL;
-    constexpr corner_position DBR = corner_position::DBR;
-    constexpr corner_position DFR = corner_position::DFR;
+    constexpr face_position U = face_position::U;
+    constexpr face_position D = face_position::D;
+    constexpr face_position F = face_position::F;
+    constexpr face_position B = face_position::B;
+    constexpr face_position L = face_position::L;
+    constexpr face_position R = face_position::R;
 
     constexpr edge_position UF = edge_position::UF;
     constexpr edge_position UL = edge_position::UL;
@@ -159,6 +184,15 @@ namespace positions
     constexpr edge_position DL = edge_position::DL;
     constexpr edge_position DB = edge_position::DB;
     constexpr edge_position DR = edge_position::DR;
+
+    constexpr corner_position UFL = corner_position::UFL;
+    constexpr corner_position UBL = corner_position::UBL;
+    constexpr corner_position UBR = corner_position::UBR;
+    constexpr corner_position UFR = corner_position::UFR;
+    constexpr corner_position DFL = corner_position::DFL;
+    constexpr corner_position DBL = corner_position::DBL;
+    constexpr corner_position DBR = corner_position::DBR;
+    constexpr corner_position DFR = corner_position::DFR;
 }
 
 /* Cube state representation */
@@ -216,43 +250,242 @@ struct cube
     // Total:              68.8            | 65.2            | 100
     //
 
-    struct edge_state
+    template <typename S,
+              typename Piece,
+              typename Pos,
+              typename Orientation,
+              std::uint8_t PosBits,
+              std::uint8_t OrBits>
+    struct state_base
     {
-        constexpr edge_state(std::uint8_t s) : m_state{s} {}
-        constexpr edge_state(edge_piece piece, edge_orientation eo)
-                : m_state{static_cast<std::uint8_t>(
-                      (static_cast<std::uint8_t>(piece) << 1)
-                      | static_cast<std::uint8_t>(eo))}
-        {}
-        constexpr edge_piece piece() const
-        { return static_cast<edge_piece>(m_state >> 1); }
-        constexpr edge_orientation orientation() const
-        { return static_cast<edge_orientation>(m_state & 0b1); }
-        std::uint64_t at(edge_position pos)
-        { return static_cast<std::uint64_t>(m_state) << edge_shift(pos); }
+        using rep_t       = std::uint64_t;
+        using idx_t       = std::uint8_t;
+        using states      = S;
+        using piece       = Piece;
+        using position    = Pos;
+        using orientation = Orientation;
 
-    private:
-        std::uint8_t m_state; // layout: 0bPPPPO
+        static constexpr idx_t stride = PosBits + OrBits;
+
+        // edge   layout: 0bPPPPO, mask: 0b11111<<(5*edge_num)
+        // corner layout: 0bPPPPO, mask: 0b11111<<(5*corner_num)
+        struct position_state
+        {
+            using posrep_t = std::uint8_t;
+            using piece_t = state_base::piece;
+            using orientation_t = state_base::orientation;
+
+            constexpr position_state(posrep_t r) : m_rep{r} {}
+            constexpr position_state(piece_t p, orientation_t o)
+                    : m_rep{static_cast<posrep_t>(
+                          (static_cast<posrep_t>(p) << OrBits)
+                          | static_cast<posrep_t>(o))}
+            {}
+            constexpr piece piece() const
+            {
+                return static_cast<piece_t>(m_rep >> OrBits);
+            }
+            constexpr orientation orientation() const
+            {
+                return static_cast<orientation_t>(m_rep & ((1 << OrBits) - 1));
+            }
+            states at(position pos)
+            {
+                return {static_cast<rep_t>(m_rep) << state_base::shift(pos)};
+            }
+
+        private:
+            posrep_t m_rep;
+        };
+
+        struct mask
+        {
+            constexpr mask(position pos) noexcept
+                    : rep{static_cast<rep_t>((1 << stride) - 1) << state_base::shift(pos)}
+            {}
+            constexpr mask operator~() const noexcept { return mask{~rep}; }
+            friend constexpr mask operator|(mask a, mask b) noexcept
+            { return mask{a.rep | b.rep}; }
+            friend constexpr mask operator&(mask a, mask b) noexcept
+            { return mask{a.rep & b.rep}; }
+            friend constexpr states operator&(mask a, state_base b) noexcept
+            { return states{a.rep & b.rep}; }
+            friend constexpr states operator&(state_base a, mask b) noexcept
+            { return states{a.rep & b.rep}; }
+
+        private:
+            constexpr mask(rep_t rep) noexcept : rep{rep} {}
+
+            rep_t rep;
+        };
+
+        constexpr static idx_t shift(position pos) noexcept
+        {
+            return stride * static_cast<idx_t>(pos);
+        }
+
+        constexpr position_state operator[](position p) const
+        {
+            return position_state(((*this) & mask(p)).rep >> shift(p));
+        }
+
+        constexpr states move(position from, position to) const noexcept
+        {
+            return (*this)[from].at(to);
+            //return {(((*this) & mask(from)).rep >> shift(from)) << shift(to)};
+        }
+
+        template <position... Positions>
+        constexpr static mask make_mask()
+        {
+            return (mask(Positions) | ...);
+        }
+
+        template <position P1, position P2, position P3, position P4>
+        constexpr states rot_90() const noexcept
+        {
+            return (*this & ~make_mask<P1, P2, P3, P4>())
+                   | move(P1, P2)
+                   | move(P2, P3)
+                   | move(P3, P4)
+                   | move(P4, P1);
+        }
+
+        template <position P1, position P2, position P3, position P4>
+        constexpr states rot_180() const noexcept
+        {
+            return (*this & ~make_mask<P1, P2, P3, P4>())
+                   | move(P1, P3)
+                   | move(P2, P4)
+                   | move(P3, P1)
+                   | move(P4, P2);
+        }
+
+        friend constexpr bool operator==(const states &a, const states &b)
+        { return a.rep == b.rep; }
+        friend constexpr states operator|(states a, states b) noexcept
+        { return states{a.rep | b.rep}; }
+
+        rep_t rep = 0;
     };
 
-    struct corner_state
+    struct edges_state : state_base<edges_state,
+                                    edge_piece,
+                                    edge_position,
+                                    edge_orientation,
+                                    4, 1>
     {
-        constexpr corner_state(std::uint8_t s) : m_state{s} {}
-        constexpr corner_state(corner_piece piece, corner_orientation co)
-                : m_state{static_cast<std::uint8_t>(
-                      (static_cast<std::uint8_t>(piece) << 2)
-                      | static_cast<std::uint8_t>(co))}
-        {}
-        constexpr corner_piece piece() const
-        { return static_cast<corner_piece>(m_state >> 2); }
-        constexpr corner_orientation orientation() const
-        { return static_cast<corner_orientation>(m_state & 0b11); }
-        std::uint64_t at(corner_position pos)
-        { return static_cast<std::uint64_t>(m_state) << corner_shift(pos); }
+        using edge_stickers_t = std::array<std::array<face_colour,2>,12>;
+        static constexpr edge_stickers_t edge_stickers = []() {
+            using namespace face_colours;
+            return edge_stickers_t{{{U, F}, {L, U}, {U, B}, {R, U},
+                                    {L, F}, {L, B}, {R, B}, {R, F},
+                                    {D, F}, {L, D}, {D, B}, {R, D}}};
+        }();
 
-    private:
-        std::uint8_t m_state; // layout: 0bPPPOO
+        static constexpr std::array<std::array<edge_orientation, 6>, 12>
+            edge_faces = [] () constexpr {
+                std::array<std::array<edge_orientation, 6>, 12> ret{};
+                for (int e = 0; e < 12; ++e) {
+                    for (int f = 0; f < 6; ++f) {
+                        auto fc = static_cast<face_colour>(f);
+                        ret[e][f] =
+                            (edge_stickers[e][unflipped] == fc) ?
+                                unflipped :
+                                (edge_stickers[e][flipped] == fc) ?
+                                flipped :
+                                eo_invalid;
+                    }
+                }
+                return ret;
+            }();
+
+        template <edge_position ...Edges>
+        constexpr edges_state flip() const
+        {
+            return {rep ^ ((rep_t{0b1} << shift(Edges)) | ...)};
+        }
+
+        face_colour sticker_colour(edge_position pos, face_position f) const
+        {
+            auto es = (*this)[pos];
+            auto pos_no   = static_cast<idx_t>(pos);
+            auto face_no  = static_cast<idx_t>(f);
+            auto piece_no = static_cast<idx_t>(es.piece());
+            auto sticker_pos =
+                (edge_faces[pos_no][face_no] + 2 - es.orientation()) % 2;
+            return edge_stickers[piece_no][sticker_pos];
+        }
     };
+
+    struct corners_state : state_base<corners_state,
+                                      corner_piece,
+                                      corner_position,
+                                      corner_orientation,
+                                      3, 2>
+    {
+        using corner_stickers_t = std::array<std::array<face_colour, 3>, 8>;
+        static constexpr corner_stickers_t corner_stickers = []() {
+            using namespace face_colours;
+            return corner_stickers_t{{{ U, F, L },
+                                      { U, L, B },
+                                      { U, B, R },
+                                      { U, R, F },
+                                      { D, L, F },
+                                      { D, B, L },
+                                      { D, R, B },
+                                      { D, F, R }}};
+        }();
+
+        static constexpr std::array<std::array<corner_orientation, 6>, 8>
+            corner_faces = [] () constexpr {
+                std::array<std::array<corner_orientation, 6>, 8> ret{};
+                for (int c = 0; c < 8; ++c) {
+                    for (int f = 0; f < 6; ++f) {
+                        auto fc = static_cast<face_colour>(f);
+                        ret[c][f] =
+                            (corner_stickers[c][upright] == fc) ?
+                                upright :
+                                (corner_stickers[c][clockwise] == fc) ?
+                                clockwise :
+                                (corner_stickers[c][anticlockwise] == fc) ?
+                                anticlockwise :
+                                co_invalid;
+                    }
+                }
+                return ret;
+            }();
+
+        template <corner_position ...Corners>
+        constexpr corners_state turn_cw() const noexcept
+        {
+            auto pre_mod = rep + ((rep_t{1} << shift(Corners)) | ...);
+            auto low_bits = 0b00001'00001'00001'00001'00001'00001'00001'00001;
+            return {pre_mod - 3 * ((pre_mod >> 1) & pre_mod & low_bits)};
+        }
+
+        template <corner_position ...Corners>
+        constexpr corners_state turn_acw() const noexcept
+        {
+            auto low_bits = ((rep_t{0b1} << shift(Corners)) | ...);
+            auto prepared = rep + 3 * (~((rep >> 1) | rep) & low_bits);
+            return {prepared - ((rep_t{1} << shift(Corners)) | ...)};
+        }
+
+        face_colour sticker_colour(corner_position pos, face_position f) const
+        {
+            auto cs       = (*this)[pos];
+            auto pos_no   = static_cast<idx_t>(pos);
+            auto face_no  = static_cast<idx_t>(f);
+            auto piece_no = static_cast<idx_t>(cs.piece());
+            auto sticker_pos =
+                (corner_faces[pos_no][face_no] + 3 - cs.orientation()) % 3;
+            return corner_stickers[piece_no][sticker_pos];
+        }
+    };
+
+    using edge_state   = edges_state::position_state;
+    using corner_state = corners_state::position_state;
 
     constexpr cube() :
         m_edges(edge_state{pieces::UF, unflipped}.at(positions::UF)
@@ -278,239 +511,35 @@ struct cube
     {
     }
 
-    static constexpr face edge_sticker_colours[12][2] = {
-        {U, F}, {L, U}, {U, B}, {R, U},
-        {L, F}, {L, B}, {R, B}, {R, F},
-        {D, F}, {L, D}, {D, B}, {R, D}};
-
-    static constexpr std::array<std::array<edge_orientation, 6>, 12>
-        edge_faces = [] () constexpr {
-            std::array<std::array<edge_orientation, 6>, 12> ret{};
-            for (int e = 0; e < 12; ++e) {
-                for (int f = 0; f < 6; ++f) {
-                    ret[e][f] = (edge_sticker_colours[e][unflipped] == f) ?
-                                    unflipped :
-                                    (edge_sticker_colours[e][flipped] == f) ?
-                                    flipped :
-                                    eo_invalid;
-                }
-            }
-            return ret;
-        }();
-
-    static constexpr face corner_sticker_colours[8][3] = {{ U, F, L },
-                                                          { U, L, B },
-                                                          { U, B, R },
-                                                          { U, R, F },
-                                                          { D, L, F },
-                                                          { D, B, L },
-                                                          { D, R, B },
-                                                          { D, F, R }};
-
-    static constexpr std::array<std::array<corner_orientation, 6>, 8>
-        corner_faces = [] () constexpr {
-            std::array<std::array<corner_orientation, 6>, 8> ret{};
-            for (int c = 0; c < 8; ++c) {
-                for (int f = 0; f < 6; ++f) {
-                    ret[c][f] =
-                        (corner_sticker_colours[c][upright] == f) ?
-                            upright :
-                            (corner_sticker_colours[c][clockwise] == f) ?
-                            clockwise :
-                            (corner_sticker_colours[c][anticlockwise] == f) ?
-                            anticlockwise :
-                            co_invalid;
-                }
-            }
-            return ret;
-        }();
-
-    static constexpr std::uint64_t u64_1 = 1;
-
-    constexpr static std::uint8_t edge_shift(edge_position pos)
-    {
-        return 5 * static_cast<std::uint8_t>(pos);
-    }
-
-    constexpr static std::uint64_t edge_mask(edge_position pos)
-    {
-        return static_cast<std::uint64_t>(0b11111) << edge_shift(pos);
-    }
-
     template <edge_position... Edges>
-    constexpr static std::uint64_t mask()
+    constexpr static auto mask()
     {
-        return (edge_mask(Edges) | ...);
-    }
-
-    constexpr static edge_state edge_at(std::uint64_t edges, edge_position ep)
-    {
-        return edge_state{static_cast<std::uint8_t>((edges & edge_mask(ep)) >> edge_shift(ep))};
-    }
-
-    constexpr static std::uint8_t corner_shift(corner_position pos)
-    {
-        return 5 * static_cast<std::uint8_t>(pos);
-    }
-
-    constexpr static std::uint64_t corner_mask()
-    {
-        return corner_mask(static_cast<corner_position>(0));
-    }
-
-    constexpr static std::uint64_t corner_mask(corner_position c)
-    {
-        return static_cast<std::uint64_t>(0b11111) << corner_shift(c);
-    }
-
-    template <corner_position Corner>
-    constexpr static std::uint64_t corner_mask()
-    {
-        return static_cast<std::uint64_t>(0b11111) << corner_shift(Corner);
+        return (edges_state::mask(Edges) | ...);
     }
 
     template <corner_position... Corners>
-    constexpr static std::uint64_t mask()
+    constexpr static auto mask()
     {
-        return (corner_mask<Corners>() | ...);
-    }
-
-    constexpr static corner_state corner_at(std::uint64_t   corners,
-                                            corner_position cp)
-    {
-        return corner_state{static_cast<std::uint8_t>((corners & corner_mask(cp)) >> corner_shift(cp))};
+        return (corners_state::mask(Corners) | ...);
     }
 
     /*
      * Queries
      */
 
-    /*
-    corners = 988530610188, pos = DFR, face = F
-      piece: DFR
-      orientation: 0
-      sticker: 1
-      */
-
-
-    face sticker_colour(std::uint64_t edges, edge_position pos, face f) const
+    constexpr face_colour sticker_colour(edge_position ep, face_position f) const
     {
-        // if the edge was upright, we'd be looking at 
-        auto es = edge_at(edges, pos);
-        auto pos_no = static_cast<std::uint8_t>(pos);
-        auto piece_no = static_cast<std::uint8_t>(es.piece());
-        auto sticker_pos = (edge_faces[pos_no][f] + 2 - es.orientation()) % 2;
-        /*
-        std::cout << "edges = " << edges << ", pos = " << pos << ", face = " << f << "\n";
-        std::cout << "  piece: " << es.piece() << "\n";
-        std::cout << "  orientation: " << es.orientation() << "\n";
-        std::cout << "  sticker: " << sticker_pos << "\n";
-        std::cout << "  edge_sticker_colours[" << (int)piece_no << "="
-                  << edge_piece{piece_no} << "][" << (int)sticker_pos
-                  << "] = " << edge_sticker_colours[piece_no][sticker_pos]
-                  << "\n";
-        // */
-        return edge_sticker_colours[piece_no][sticker_pos];
+        return m_edges.sticker_colour(ep, f);
     }
 
-    constexpr face sticker_colour(edge_position ep, face f) const
+    constexpr face_colour sticker_colour(corner_position cp, face_position f) const
     {
-        return sticker_colour(m_edges, ep, f);
+        return m_corners.sticker_colour(cp, f);
     }
-
-    face sticker_colour(std::uint64_t corners, corner_position pos, face f) const
-    {
-        auto cs = corner_at(corners, pos);
-        auto pos_no = static_cast<std::uint8_t>(pos);
-        auto piece_no = static_cast<std::uint8_t>(cs.piece());
-        auto sticker_pos = (corner_faces[pos_no][f] + 3 - cs.orientation()) % 3;
-        /*
-        std::cout << "corners = " << corners << ", pos = " << pos << ", face = " << f << "\n";
-        std::cout << "  piece: " << cs.piece() << "\n";
-        std::cout << "  orientation: " << cs.orientation() << "\n";
-        std::cout << "  sticker: " << sticker_pos << "\n";
-        std::cout << "  corner_sticker_colours[" << (int)piece_no << "="
-                  << corner_piece{piece_no} << "][" << (int)sticker_pos
-                  << "] = " << corner_sticker_colours[piece_no][sticker_pos]
-                  << "\n";
-        // */
-        return corner_sticker_colours[piece_no][sticker_pos];
-    }
-
-    constexpr face sticker_colour(corner_position cp, face f) const
-    {
-        return sticker_colour(m_corners, cp, f);
-    }
-
-    /*
-    face sticker_colour(edge e, face f) {}
-    */
-
 
     /*
      * Moves
      */
-
-    constexpr static std::uint64_t move(std::uint64_t edges, edge_position from, edge_position to)
-    {
-        return ((edges >> edge_shift(from))&0b11111) << edge_shift(to);
-    }
-
-    template <edge_position ...Edges>
-    constexpr static std::uint64_t flip_edges(std::uint64_t edges)
-    {
-        return edges
-               ^ ((static_cast<std::uint64_t>(0b1) << edge_shift(Edges)) | ...);
-    }
-
-    constexpr static std::uint64_t move(std::uint64_t corners, corner_position from, corner_position to)
-    {
-        return ((corners >> corner_shift(from))&0b11111) << corner_shift(to);
-    }
-
-    constexpr static std::uint64_t
-        fix_corner_orientation(std::uint64_t corner_orientations)
-    {
-        return corner_orientations
-               - 3 * (((corner_orientations >> 1) & corner_orientations)
-                      & 0b00001'00001'00001'00001'00001'00001'00001'00001);
-    }
-
-    template <corner_position... Corners>
-    constexpr static std::uint64_t prepare_corner_orientations_for_acw(
-        std::uint64_t corner_orientations)
-    {
-        constexpr std::uint64_t mask =
-            ((static_cast<std::uint64_t>(0b1) << corner_shift(Corners)) | ...);
-        return corner_orientations
-               + 3 * (~((corner_orientations >> 1) | corner_orientations)
-                      & mask);
-    }
-
-    template <corner_position ...Corners>
-    constexpr static std::uint64_t turn_corners_cw(std::uint64_t corners)
-    {
-        return fix_corner_orientation(
-            corners + ((u64_1 << corner_shift(Corners)) | ...));
-    }
-
-    template <corner_position ...Corners>
-    constexpr static std::uint64_t turn_corners_acw(std::uint64_t corners)
-    {
-        return prepare_corner_orientations_for_acw<Corners...>(corners)
-               - ((u64_1 << corner_shift(Corners)) | ...);
-    }
-
-
-    template <auto P1, auto P2, auto P3, auto P4>
-    constexpr static std::uint64_t rot_90(std::uint64_t pieces)
-    {
-        return (pieces & ~mask<P1, P2, P3, P4>())
-               | move(pieces, P1, P2)
-               | move(pieces, P2, P3)
-               | move(pieces, P3, P4)
-               | move(pieces, P4, P1);
-    }
 
     template <edge_position   E1, edge_position   E2,
               edge_position   E3, edge_position   E4,
@@ -518,8 +547,9 @@ struct cube
               corner_position C3, corner_position C4>
     cube &ud_90()
     {
-        m_edges = flip_edges<E1, E2, E3, E4>(rot_90<E1, E2, E3, E4>(m_edges));
-        m_corners = rot_90<C1, C2, C3, C4>(m_corners);
+        m_edges =
+            m_edges.rot_90<E1, E2, E3, E4>().template flip<E1, E2, E3, E4>();
+        m_corners = m_corners.rot_90<C1, C2, C3, C4>();
         return *this;
     }
 
@@ -555,9 +585,10 @@ struct cube
         constexpr auto CwC2 = C1Cw ? C3 : C4;
         constexpr auto AcwC1 = C1Cw ? C2 : C1;
         constexpr auto AcwC2 = C1Cw ? C4 : C3;
-        m_corners = turn_corners_cw<CwC1, CwC2>(
-            turn_corners_acw<AcwC1, AcwC2>(rot_90<C1, C2, C3, C4>(m_corners)));
-        m_edges = rot_90<E1, E2, E3, E4>(m_edges);
+        m_corners = m_corners.rot_90<C1, C2, C3, C4>()
+                             .template turn_acw<AcwC1, AcwC2>()
+                             .template turn_cw<CwC1, CwC2>();
+        m_edges = m_edges.rot_90<E1, E2, E3, E4>();
         return *this;
     }
 
@@ -601,24 +632,14 @@ struct cube
         return fblr_90<UR, FR, DR, BR, UFR, DFR, DBR, UBR, false>();
     }
 
-    template <auto P1, auto P2, auto P3, auto P4>
-    static std::uint64_t rot_180(std::uint64_t pieces)
-    {
-        return (pieces & ~mask<P1, P2, P3, P4>())
-               | move(pieces, P1, P3)
-               | move(pieces, P2, P4)
-               | move(pieces, P3, P1)
-               | move(pieces, P4, P2);
-    }
-
     template <edge_position   E1, edge_position   E2,
               edge_position   E3, edge_position   E4,
               corner_position C1, corner_position C2,
               corner_position C3, corner_position C4>
     cube &udfblr_180()
     {
-        m_edges = rot_180<E1, E2, E3, E4>(m_edges);
-        m_corners = rot_180<C1, C2, C3, C4>(m_corners);
+        m_edges = m_edges.rot_180<E1, E2, E3, E4>();
+        m_corners = m_corners.rot_180<C1, C2, C3, C4>();
         return *this;
     }
 
@@ -652,14 +673,18 @@ struct cube
         return udfblr_180<UB, BL, DB, BR, UBL, DBL, DBR, UBR>();
     }
 
-    friend bool operator == (const cube& a, const cube& b)
+    friend constexpr bool operator==(const cube &a, const cube &b) noexcept
     {
         return a.m_edges == b.m_edges && a.m_corners == b.m_corners;
     }
 
-    // layouts: P = position, O = orientation
-    std::uint64_t m_edges   = 0; // layout: 0bPPPPO, mask: 0b11111<<(5*edge_num)
-    std::uint64_t m_corners = 0; // layout: 0bPPPOO, mask: 0b11111<<(5*corner_num)
+    //                            layouts: P = position, O = orientation
+    edges_state   m_edges{};   // layout: 0bPPPPO, mask: 0b11111<<(5*edge_num)
+    corners_state m_corners{}; // layout: 0bPPPOO, mask: 0b11111<<(5*corner_num)
+};
+
+struct cube_view
+{
 };
 
 static_assert(sizeof(cube) == 16, "");

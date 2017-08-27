@@ -143,12 +143,19 @@ struct pixel_grid
     //
     //
     struct pixel {
-        pixel() : fg{-1}, bg{-1}, shape{block::full} {}
-        pixel(face fg, block shape) : fg{(char)fg}, bg{-1}, shape{shape} {}
-        pixel(face fg, face bg, block shape) : fg{(char)fg}, bg{(char)bg}, shape{shape} {}
-        char  fg;
-        char  bg;
-        block shape;
+        pixel() : fg{face_colour::none},
+                  bg{face_colour::none},
+                  shape{block::full}
+        {}
+        pixel(face_colour fg, block shape)
+                : fg{fg}, bg{face_colour::none}, shape{shape}
+        {}
+        pixel(face_colour fg, face_colour bg, block shape)
+                : fg{fg}, bg{bg}, shape{shape}
+        {}
+        face_colour fg;
+        face_colour bg;
+        block       shape;
     };
 
     static constexpr auto front_cell_height = 4;
@@ -158,9 +165,9 @@ struct pixel_grid
     static constexpr auto top_cell_height = 2;
     static constexpr auto cell_width = 7;
 
-    void draw(int row, int col, face f, block b)
+    void draw(int row, int col, face_colour f, block b)
     {
-        if (m_pixels[row][col].fg != -1)
+        if (m_pixels[row][col].fg != face_colour::none)
         {
             m_pixels[row][col].bg = m_pixels[row][col].fg;
         }
@@ -168,7 +175,7 @@ struct pixel_grid
         m_pixels[row][col].shape = b;
     }
 
-    void draw_top(int x, int y, face f)
+    void draw_top(int x, int y, face_colour f)
     {
         int row = (top_cell_height * 2) - top_cell_height * y + top_cell_height * x - 1;
         int col = cell_width * x + cell_width * y;
@@ -206,7 +213,7 @@ struct pixel_grid
         draw(row+4, col+7,  f, block::upper_left_quadrant);
     }
 
-    void draw_bottom(int x, int y, face f)
+    void draw_bottom(int x, int y, face_colour f)
     {
         int row = (top_cell_height * 2) - top_cell_height * y + top_cell_height * x - 1 + front_cell_height * 3;
         int col = cell_width * x + cell_width * y;
@@ -244,7 +251,7 @@ struct pixel_grid
         draw(row+4, col+8,  f, block::upper_half);
     }
 
-    void draw_lr_1(int x, int y, face f, bool left)
+    void draw_lr_1(int x, int y, face_colour f, bool left)
     {
         int row = (front_cell_height * 2) - front_cell_height * y
                   + front_cell_skew * x + (left ? top_cell_height * 3 : 0);
@@ -301,7 +308,7 @@ struct pixel_grid
         }
     }
 
-    void draw_lr_2(int x, int y, face f, bool right)
+    void draw_lr_2(int x, int y, face_colour f, bool right)
     {
         int row = (front_cell_height * 2 + front_cell_skew * 2) - front_cell_height * y  - front_cell_skew * x + (right ? top_cell_height * 3 : 0);
         int col = front_cell_width * (x + (right ? 3 : 0));
@@ -357,22 +364,22 @@ struct pixel_grid
         }
     }
 
-    void draw_left(int x, int y, face f)
+    void draw_left(int x, int y, face_colour f)
     {
         draw_lr_1(x, y, f, true);
     }
 
-    void draw_left_under(int x, int y, face f)
+    void draw_left_under(int x, int y, face_colour f)
     {
         draw_lr_2(x, y, f, false);
     }
 
-    void draw_right(int x, int y, face f)
+    void draw_right(int x, int y, face_colour f)
     {
         return draw_lr_2(x, y, f, true);
     }
 
-    void draw_right_under(int x, int y, face f)
+    void draw_right_under(int x, int y, face_colour f)
     {
         return draw_lr_1(x, y, f, false);
     }
@@ -394,24 +401,31 @@ struct pixel_grid_pair
             constexpr auto nullop = +[](std::ostream &o) -> std::ostream & { return o; };
             for (const auto& p : row)
             {
-                if (p.fg != -1 and p.bg == p.fg)
+                auto fg_idx = static_cast<std::uint8_t>(p.fg);
+                auto bg_idx = static_cast<std::uint8_t>(p.bg);
+                if (p.fg != face_colour::none and p.bg == p.fg)
                 {
-                    o << fg_face_colours[p.fg]
+                    o << fg_face_colours[fg_idx]
                       << block_character(block::full)
                       << termcolor::reset;
                 }
-                else if (p.bg != -1 and foreground_only[p.bg])
+                else if (p.bg != face_colour::none and foreground_only[bg_idx])
                 {
-                    o << fg_face_colours[p.bg]
-                      << bg_face_colours[p.fg]
+                    o << fg_face_colours[bg_idx]
+                      << bg_face_colours[fg_idx]
                       << block_character(block_inverse[(char)p.shape])
                       << termcolor::reset;
                 }
                 else
                 {
-                    o << ((p.fg == -1) ? nullop : fg_face_colours[p.fg])
-                      << ((p.bg == -1) ? nullop : bg_face_colours[p.bg])
-                      << (p.fg + p.bg == -2 ? " " : block_character(p.shape))
+                    o << ((p.fg == face_colour::none) ? nullop :
+                                                        fg_face_colours[fg_idx])
+                      << ((p.bg == face_colour::none) ? nullop :
+                                                        bg_face_colours[bg_idx])
+                      << ((p.fg == face_colour::none
+                           and p.bg == face_colour::none) ?
+                              " " :
+                              block_character(p.shape))
                       << termcolor::reset;
                 }
             }
@@ -433,65 +447,66 @@ void draw(const cube& c)
 {
     pixel_grid_pair p;
     /* drawing order matters! */
-    p.top.draw_top(0, 2, c.sticker_colour(positions::UBL, U));
-    p.top.draw_top(0, 1, c.sticker_colour(positions::UL, U));
-    p.top.draw_top(1, 2, c.sticker_colour(positions::UB, U));
-    p.top.draw_top(0, 0, c.sticker_colour(positions::UFL, U));
-    p.top.draw_top(1, 1, U);
-    p.top.draw_top(2, 2, c.sticker_colour(positions::UBR, U));
-    p.top.draw_top(1, 0, c.sticker_colour(positions::UF, U));
-    p.top.draw_top(2, 1, c.sticker_colour(positions::UR, U));
-    p.top.draw_top(2, 0, c.sticker_colour(positions::UFR, U));
+    using namespace positions;
+    p.top.draw_top(0, 2, c.sticker_colour(UBL, U));
+    p.top.draw_top(0, 1, c.sticker_colour(UL, U));
+    p.top.draw_top(1, 2, c.sticker_colour(UB, U));
+    p.top.draw_top(0, 0, c.sticker_colour(UFL, U));
+    p.top.draw_top(1, 1, face_colour::U);
+    p.top.draw_top(2, 2, c.sticker_colour(UBR, U));
+    p.top.draw_top(1, 0, c.sticker_colour(UF, U));
+    p.top.draw_top(2, 1, c.sticker_colour(UR, U));
+    p.top.draw_top(2, 0, c.sticker_colour(UFR, U));
 
-    p.top.draw_left(0, 2, c.sticker_colour(positions::UFL, F));
-    p.top.draw_left(1, 2, c.sticker_colour(positions::UF, F));
-    p.top.draw_left(2, 2, c.sticker_colour(positions::UFR, F));
-    p.top.draw_left(0, 1, c.sticker_colour(positions::FL, F));
-    p.top.draw_left(1, 1, F);
-    p.top.draw_left(2, 1, c.sticker_colour(positions::FR, F));
-    p.top.draw_left(0, 0, c.sticker_colour(positions::DFL, F));
-    p.top.draw_left(1, 0, c.sticker_colour(positions::DF, F));
-    p.top.draw_left(2, 0, c.sticker_colour(positions::DFR, F));
+    p.top.draw_left(0, 2, c.sticker_colour(UFL, F));
+    p.top.draw_left(1, 2, c.sticker_colour(UF, F));
+    p.top.draw_left(2, 2, c.sticker_colour(UFR, F));
+    p.top.draw_left(0, 1, c.sticker_colour(FL, F));
+    p.top.draw_left(1, 1, face_colour::F);
+    p.top.draw_left(2, 1, c.sticker_colour(FR, F));
+    p.top.draw_left(0, 0, c.sticker_colour(DFL, F));
+    p.top.draw_left(1, 0, c.sticker_colour(DF, F));
+    p.top.draw_left(2, 0, c.sticker_colour(DFR, F));
 
-    p.top.draw_right(0, 2, c.sticker_colour(positions::UFR, R));
-    p.top.draw_right(1, 2, c.sticker_colour(positions::UR, R));
-    p.top.draw_right(2, 2, c.sticker_colour(positions::UBR, R));
-    p.top.draw_right(0, 1, c.sticker_colour(positions::FR, R));
-    p.top.draw_right(1, 1, R);
-    p.top.draw_right(2, 1, c.sticker_colour(positions::BR, R));
-    p.top.draw_right(0, 0, c.sticker_colour(positions::DFR, R));
-    p.top.draw_right(1, 0, c.sticker_colour(positions::DR, R));
-    p.top.draw_right(2, 0, c.sticker_colour(positions::DBR, R));
+    p.top.draw_right(0, 2, c.sticker_colour(UFR, R));
+    p.top.draw_right(1, 2, c.sticker_colour(UR, R));
+    p.top.draw_right(2, 2, c.sticker_colour(UBR, R));
+    p.top.draw_right(0, 1, c.sticker_colour(FR, R));
+    p.top.draw_right(1, 1, face_colour::R);
+    p.top.draw_right(2, 1, c.sticker_colour(BR, R));
+    p.top.draw_right(0, 0, c.sticker_colour(DFR, R));
+    p.top.draw_right(1, 0, c.sticker_colour(DR, R));
+    p.top.draw_right(2, 0, c.sticker_colour(DBR, R));
 
-    p.bottom.draw_bottom(0, 2, c.sticker_colour(positions::DBL, D));
-    p.bottom.draw_bottom(0, 1, c.sticker_colour(positions::DB, D));
-    p.bottom.draw_bottom(1, 2, c.sticker_colour(positions::DL, D));
-    p.bottom.draw_bottom(0, 0, c.sticker_colour(positions::DBR, D));
-    p.bottom.draw_bottom(1, 1, D);
-    p.bottom.draw_bottom(2, 2, c.sticker_colour(positions::DFL, D));
-    p.bottom.draw_bottom(1, 0, c.sticker_colour(positions::DR, D));
-    p.bottom.draw_bottom(2, 1, c.sticker_colour(positions::DF, D));
-    p.bottom.draw_bottom(2, 0, c.sticker_colour(positions::DFR, D));
+    p.bottom.draw_bottom(0, 2, c.sticker_colour(DBL, D));
+    p.bottom.draw_bottom(0, 1, c.sticker_colour(DB, D));
+    p.bottom.draw_bottom(1, 2, c.sticker_colour(DL, D));
+    p.bottom.draw_bottom(0, 0, c.sticker_colour(DBR, D));
+    p.bottom.draw_bottom(1, 1, face_colour::D);
+    p.bottom.draw_bottom(2, 2, c.sticker_colour(DFL, D));
+    p.bottom.draw_bottom(1, 0, c.sticker_colour(DR, D));
+    p.bottom.draw_bottom(2, 1, c.sticker_colour(DF, D));
+    p.bottom.draw_bottom(2, 0, c.sticker_colour(DFR, D));
 
-    p.bottom.draw_left_under(0, 2, c.sticker_colour(positions::UBR,  B));
-    p.bottom.draw_left_under(1, 2, c.sticker_colour(positions::UB,   B));
-    p.bottom.draw_left_under(2, 2, c.sticker_colour(positions::UBL,  B));
-    p.bottom.draw_left_under(0, 1, c.sticker_colour(positions::BR,   B));
-    p.bottom.draw_left_under(1, 1, B);
-    p.bottom.draw_left_under(2, 1, c.sticker_colour(positions::BL,   B));
-    p.bottom.draw_left_under(0, 0, c.sticker_colour(positions::DBR,  B));
-    p.bottom.draw_left_under(1, 0, c.sticker_colour(positions::DB,   B));
-    p.bottom.draw_left_under(2, 0, c.sticker_colour(positions::DBL,  B));
+    p.bottom.draw_left_under(0, 2, c.sticker_colour(UBR,  B));
+    p.bottom.draw_left_under(1, 2, c.sticker_colour(UB,   B));
+    p.bottom.draw_left_under(2, 2, c.sticker_colour(UBL,  B));
+    p.bottom.draw_left_under(0, 1, c.sticker_colour(BR,   B));
+    p.bottom.draw_left_under(1, 1, face_colour::B);
+    p.bottom.draw_left_under(2, 1, c.sticker_colour(BL,   B));
+    p.bottom.draw_left_under(0, 0, c.sticker_colour(DBR,  B));
+    p.bottom.draw_left_under(1, 0, c.sticker_colour(DB,   B));
+    p.bottom.draw_left_under(2, 0, c.sticker_colour(DBL,  B));
 
-    p.bottom.draw_right_under(0, 2, c.sticker_colour(positions::UBL, L));
-    p.bottom.draw_right_under(1, 2, c.sticker_colour(positions::UL,  L));
-    p.bottom.draw_right_under(2, 2, c.sticker_colour(positions::UFL, L));
-    p.bottom.draw_right_under(0, 1, c.sticker_colour(positions::BL,  L));
-    p.bottom.draw_right_under(1, 1, L);
-    p.bottom.draw_right_under(2, 1, c.sticker_colour(positions::FL,  L));
-    p.bottom.draw_right_under(0, 0, c.sticker_colour(positions::DBL, L));
-    p.bottom.draw_right_under(1, 0, c.sticker_colour(positions::DL,  L));
-    p.bottom.draw_right_under(2, 0, c.sticker_colour(positions::DFL, L));
+    p.bottom.draw_right_under(0, 2, c.sticker_colour(UBL, L));
+    p.bottom.draw_right_under(1, 2, c.sticker_colour(UL,  L));
+    p.bottom.draw_right_under(2, 2, c.sticker_colour(UFL, L));
+    p.bottom.draw_right_under(0, 1, c.sticker_colour(BL,  L));
+    p.bottom.draw_right_under(1, 1, face_colour::L);
+    p.bottom.draw_right_under(2, 1, c.sticker_colour(FL,  L));
+    p.bottom.draw_right_under(0, 0, c.sticker_colour(DBL, L));
+    p.bottom.draw_right_under(1, 0, c.sticker_colour(DL,  L));
+    p.bottom.draw_right_under(2, 0, c.sticker_colour(DFL, L));
 
     std::cout << p;
 }
