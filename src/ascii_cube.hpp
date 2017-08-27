@@ -443,16 +443,16 @@ struct pixel_grid_pair
     }
 };
 
-void draw(const cube& c)
+void draw(const cube_view& c)
 {
     pixel_grid_pair p;
     /* drawing order matters! */
-    using namespace positions;
+    using namespace view_positions;
     p.top.draw_top(0, 2, c.sticker_colour(UBL, U));
     p.top.draw_top(0, 1, c.sticker_colour(UL, U));
     p.top.draw_top(1, 2, c.sticker_colour(UB, U));
     p.top.draw_top(0, 0, c.sticker_colour(UFL, U));
-    p.top.draw_top(1, 1, face_colour::U);
+    p.top.draw_top(1, 1, c.sticker_colour(U));
     p.top.draw_top(2, 2, c.sticker_colour(UBR, U));
     p.top.draw_top(1, 0, c.sticker_colour(UF, U));
     p.top.draw_top(2, 1, c.sticker_colour(UR, U));
@@ -462,7 +462,7 @@ void draw(const cube& c)
     p.top.draw_left(1, 2, c.sticker_colour(UF, F));
     p.top.draw_left(2, 2, c.sticker_colour(UFR, F));
     p.top.draw_left(0, 1, c.sticker_colour(FL, F));
-    p.top.draw_left(1, 1, face_colour::F);
+    p.top.draw_left(1, 1, c.sticker_colour(F));
     p.top.draw_left(2, 1, c.sticker_colour(FR, F));
     p.top.draw_left(0, 0, c.sticker_colour(DFL, F));
     p.top.draw_left(1, 0, c.sticker_colour(DF, F));
@@ -472,7 +472,7 @@ void draw(const cube& c)
     p.top.draw_right(1, 2, c.sticker_colour(UR, R));
     p.top.draw_right(2, 2, c.sticker_colour(UBR, R));
     p.top.draw_right(0, 1, c.sticker_colour(FR, R));
-    p.top.draw_right(1, 1, face_colour::R);
+    p.top.draw_right(1, 1, c.sticker_colour(R));
     p.top.draw_right(2, 1, c.sticker_colour(BR, R));
     p.top.draw_right(0, 0, c.sticker_colour(DFR, R));
     p.top.draw_right(1, 0, c.sticker_colour(DR, R));
@@ -482,7 +482,7 @@ void draw(const cube& c)
     p.bottom.draw_bottom(0, 1, c.sticker_colour(DB, D));
     p.bottom.draw_bottom(1, 2, c.sticker_colour(DL, D));
     p.bottom.draw_bottom(0, 0, c.sticker_colour(DBR, D));
-    p.bottom.draw_bottom(1, 1, face_colour::D);
+    p.bottom.draw_bottom(1, 1, c.sticker_colour(D));
     p.bottom.draw_bottom(2, 2, c.sticker_colour(DFL, D));
     p.bottom.draw_bottom(1, 0, c.sticker_colour(DR, D));
     p.bottom.draw_bottom(2, 1, c.sticker_colour(DF, D));
@@ -492,7 +492,7 @@ void draw(const cube& c)
     p.bottom.draw_left_under(1, 2, c.sticker_colour(UB,   B));
     p.bottom.draw_left_under(2, 2, c.sticker_colour(UBL,  B));
     p.bottom.draw_left_under(0, 1, c.sticker_colour(BR,   B));
-    p.bottom.draw_left_under(1, 1, face_colour::B);
+    p.bottom.draw_left_under(1, 1, c.sticker_colour(B));
     p.bottom.draw_left_under(2, 1, c.sticker_colour(BL,   B));
     p.bottom.draw_left_under(0, 0, c.sticker_colour(DBR,  B));
     p.bottom.draw_left_under(1, 0, c.sticker_colour(DB,   B));
@@ -502,7 +502,7 @@ void draw(const cube& c)
     p.bottom.draw_right_under(1, 2, c.sticker_colour(UL,  L));
     p.bottom.draw_right_under(2, 2, c.sticker_colour(UFL, L));
     p.bottom.draw_right_under(0, 1, c.sticker_colour(BL,  L));
-    p.bottom.draw_right_under(1, 1, face_colour::L);
+    p.bottom.draw_right_under(1, 1, c.sticker_colour(L));
     p.bottom.draw_right_under(2, 1, c.sticker_colour(FL,  L));
     p.bottom.draw_right_under(0, 0, c.sticker_colour(DBL, L));
     p.bottom.draw_right_under(1, 0, c.sticker_colour(DL,  L));

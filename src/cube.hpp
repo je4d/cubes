@@ -527,6 +527,11 @@ struct cube
      * Queries
      */
 
+    constexpr face_colour sticker_colour(face_position f) const
+    {
+        return static_cast<face_colour>(f);
+    }
+
     constexpr face_colour sticker_colour(edge_position ep, face_position f) const
     {
         return m_edges.sticker_colour(ep, f);
@@ -681,10 +686,6 @@ struct cube
     //                            layouts: P = position, O = orientation
     edges_state   m_edges{};   // layout: 0bPPPPO, mask: 0b11111<<(5*edge_num)
     corners_state m_corners{}; // layout: 0bPPPOO, mask: 0b11111<<(5*corner_num)
-};
-
-struct cube_view
-{
 };
 
 static_assert(sizeof(cube) == 16, "");
