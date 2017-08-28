@@ -19,12 +19,9 @@ enum class cube_turn : std::uint8_t
 
 enum class view_face_position : uint8_t
 {
-    U,
-    D,
-    F,
-    B,
-    L,
-    R,
+    U, D,
+    F, B,
+    L, R,
 };
 
 std::ostream &operator<<(std::ostream &o, view_face_position f)
@@ -142,9 +139,12 @@ public:
         return *this;
     };
 
-    constexpr face_colour sticker_colour(view_face_position f) const
+    template <typename... Ts>
+    constexpr face_colour sticker_colour(view_face_position f,
+                                         Ts &&... ts) const noexcept
     {
-        return m_cube.sticker_colour(m_face_map[u8(f)]);
+        return m_cube.sticker_colour(m_face_map[u8(f)],
+                                     std::forward<Ts>(ts)...);
     }
 
     // indexed by view_edge_position
@@ -177,13 +177,26 @@ public:
         }};
     }();
 
+    template <typename... Ts>
     constexpr face_colour sticker_colour(view_edge_position vep,
-                                         view_face_position f) const
+                                         view_face_position f,
+                                         Ts &&... ts) const noexcept
     {
         auto faces = edge_faces[u8(vep)];
         edge_position ep = faces_to_edge[u8(m_face_map[u8(faces.first)])]
                                         [u8(m_face_map[u8(faces.second)])];
-        return m_cube.sticker_colour(ep, m_face_map[u8(f)]);
+        return m_cube.sticker_colour(
+            ep, m_face_map[u8(f)], std::forward<Ts>(ts)...);
+    }
+
+    constexpr face_colour sticker_colour(view_edge_position        vep,
+                                         view_face_position        f,
+                                         const cube::edge_stickers &st) const noexcept
+    {
+        auto faces = edge_faces[u8(vep)];
+        edge_position ep = faces_to_edge[u8(m_face_map[u8(faces.first)])]
+                                        [u8(m_face_map[u8(faces.second)])];
+        return m_cube.sticker_colour(ep, m_face_map[u8(f)], st);
     }
 
     // indexed by view_corner_position
@@ -260,13 +273,17 @@ public:
         }};
     }();
 
-    constexpr face_colour sticker_colour(view_corner_position vcp, view_face_position f) const
+    template <typename... Ts>
+    constexpr face_colour sticker_colour(view_corner_position vcp,
+                                         view_face_position   f,
+                                         Ts &&... ts) const noexcept
     {
         auto faces = corner_faces[u8(vcp)];
         corner_position cp = faces_to_corner[u8(m_face_map[u8(faces.up )])]
                                             [u8(m_face_map[u8(faces.cw )])]
                                             [u8(m_face_map[u8(faces.acw)])];
-        return m_cube.sticker_colour(cp, m_face_map[u8(f)]);
+        return m_cube.sticker_colour(
+            cp, m_face_map[u8(f)], std::forward<Ts>(ts)...);
     }
 
     struct cube &(cube::*ops[6][3])() = {

@@ -5,13 +5,15 @@
 
 #include <termcolor/termcolor.hpp>
 
-
 #include "cube.hpp"
+#include "cube_stickers.hpp"
 
-typedef std::ostream &(*colour_scheme[6])(std::ostream &);
+typedef std::ostream &(*colour_scheme[7])(std::ostream &);
 
 constexpr colour_scheme fg_face_colours = {
-    termcolor::white,
+    [](std::ostream &o) -> std::ostream & {
+        return o << termcolor::bold << termcolor::white;
+    },
     [](std::ostream &o) -> std::ostream & {
         return o << termcolor::bold << termcolor::yellow;
     },
@@ -19,18 +21,25 @@ constexpr colour_scheme fg_face_colours = {
     termcolor::green,
     termcolor::red,
     termcolor::yellow,
+    termcolor::white,
+    /*
+    [](std::ostream &o) -> std::ostream & {
+        return o << termcolor::on_white << termcolor::reverse;
+    },
+    */
 };
 
 constexpr colour_scheme bg_face_colours = {
-    termcolor::on_white,
+    [](std::ostream &o) -> std::ostream & {return o;},
     [](std::ostream &o) -> std::ostream & {return o;},
     termcolor::on_blue,
     termcolor::on_green,
     termcolor::on_red,
     termcolor::on_yellow,
+    [](std::ostream &o) -> std::ostream & {return o;},
 };
 
-constexpr bool foreground_only[] = {false, true, false, false, false, false};
+constexpr bool foreground_only[] = {true, true, false, false, false, false, true};
 
 enum class block
 {
@@ -180,37 +189,66 @@ struct pixel_grid
         int row = (top_cell_height * 2) - top_cell_height * y + top_cell_height * x - 1;
         int col = cell_width * x + cell_width * y;
 
-        draw(row+1, col+4, f, block::lower_half);
-        draw(row+1, col+5, f, block::upper_left_quadrant_missing);
-        draw(row+1, col+6, f, block::full);
-        draw(row+1, col+7, f, block::upper_right_quadrant_missing);
-        draw(row+1, col+8, f, block::lower_half);
+        if (f == face_colour::shadow) {
+            draw(row+1, col+4, f, block::lower_half);
+            draw(row+1, col+5, f, block::upper_right_lower_left_quadrants);
+            draw(row+1, col+6, f, block::upper_half);
+            draw(row+1, col+7, f, block::upper_left_lower_right_quadrants);
+            draw(row+1, col+8, f, block::lower_half);
 
-        draw(row+2, col+1,  f, block::lower_half);
-        draw(row+2, col+2,  f, block::upper_left_quadrant_missing);
-        draw(row+2, col+3,  f, block::full);
-        draw(row+2, col+4,  f, block::full);
-        draw(row+2, col+5,  f, block::full);
-        draw(row+2, col+6,  f, block::full);
-        draw(row+2, col+7,  f, block::full);
-        draw(row+2, col+8,  f, block::full);
-        draw(row+2, col+9,  f, block::full);
-        draw(row+2, col+10, f, block::upper_right_quadrant_missing);
-        draw(row+2, col+11, f, block::lower_half);
+            draw(row+2, col+1,  f, block::lower_half);
+            draw(row+2, col+2,  f, block::upper_right_lower_left_quadrants);
+            draw(row+2, col+3,  f, block::upper_half);
 
-        draw(row+3, col+2,  f, block::upper_right_quadrant);
-        draw(row+3, col+3,  f, block::upper_half);
-        draw(row+3, col+4,  f, block::full);
-        draw(row+3, col+5,  f, block::full);
-        draw(row+3, col+6,  f, block::full);
-        draw(row+3, col+7,  f, block::full);
-        draw(row+3, col+8,  f, block::full);
-        draw(row+3, col+9,  f, block::upper_half);
-        draw(row+3, col+10, f, block::upper_left_quadrant);
+            draw(row+2, col+9,  f, block::upper_half);
+            draw(row+2, col+10, f, block::upper_left_lower_right_quadrants);
+            draw(row+2, col+11, f, block::lower_half);
 
-        draw(row+4, col+5,  f, block::upper_right_quadrant);
-        draw(row+4, col+6,  f, block::upper_half);
-        draw(row+4, col+7,  f, block::upper_left_quadrant);
+            draw(row+3, col+2,  f, block::upper_right_quadrant);
+            draw(row+3, col+3,  f, block::upper_half);
+            draw(row+3, col+4,  f, block::lower_half);
+            draw(row+3, col+5,  f, block::lower_left_quadrant);
+            draw(row+3, col+7,  f, block::lower_right_quadrant);
+            draw(row+3, col+8,  f, block::lower_half);
+            draw(row+3, col+9,  f, block::upper_half);
+            draw(row+3, col+10, f, block::upper_left_quadrant);
+
+            draw(row+4, col+5,  f, block::upper_right_quadrant);
+            draw(row+4, col+6,  f, block::upper_half);
+            draw(row+4, col+7,  f, block::upper_left_quadrant);
+        } else {
+            draw(row+1, col+4, f, block::lower_half);
+            draw(row+1, col+5, f, block::upper_left_quadrant_missing);
+            draw(row+1, col+6, f, block::full);
+            draw(row+1, col+7, f, block::upper_right_quadrant_missing);
+            draw(row+1, col+8, f, block::lower_half);
+
+            draw(row+2, col+1,  f, block::lower_half);
+            draw(row+2, col+2,  f, block::upper_left_quadrant_missing);
+            draw(row+2, col+3,  f, block::full);
+            draw(row+2, col+4,  f, block::full);
+            draw(row+2, col+5,  f, block::full);
+            draw(row+2, col+6,  f, block::full);
+            draw(row+2, col+7,  f, block::full);
+            draw(row+2, col+8,  f, block::full);
+            draw(row+2, col+9,  f, block::full);
+            draw(row+2, col+10, f, block::upper_right_quadrant_missing);
+            draw(row+2, col+11, f, block::lower_half);
+
+            draw(row+3, col+2,  f, block::upper_right_quadrant);
+            draw(row+3, col+3,  f, block::upper_half);
+            draw(row+3, col+4,  f, block::full);
+            draw(row+3, col+5,  f, block::full);
+            draw(row+3, col+6,  f, block::full);
+            draw(row+3, col+7,  f, block::full);
+            draw(row+3, col+8,  f, block::full);
+            draw(row+3, col+9,  f, block::upper_half);
+            draw(row+3, col+10, f, block::upper_left_quadrant);
+
+            draw(row+4, col+5,  f, block::upper_right_quadrant);
+            draw(row+4, col+6,  f, block::upper_half);
+            draw(row+4, col+7,  f, block::upper_left_quadrant);
+        }
     }
 
     void draw_bottom(int x, int y, face_colour f)
@@ -218,37 +256,66 @@ struct pixel_grid
         int row = (top_cell_height * 2) - top_cell_height * y + top_cell_height * x - 1 + front_cell_height * 3;
         int col = cell_width * x + cell_width * y;
 
-        draw(row+1, col+5, f, block::lower_right_quadrant);
-        draw(row+1, col+6, f, block::lower_half);
-        draw(row+1, col+7, f, block::lower_left_quadrant);
+        if (f == face_colour::shadow) {
+            draw(row+1, col+5, f, block::lower_right_quadrant);
+            draw(row+1, col+6, f, block::lower_half);
+            draw(row+1, col+7, f, block::lower_left_quadrant);
 
-        draw(row+2, col+2,  f, block::lower_right_quadrant);
-        draw(row+2, col+3,  f, block::lower_half);
-        draw(row+2, col+4,  f, block::full);
-        draw(row+2, col+5,  f, block::full);
-        draw(row+2, col+6,  f, block::full);
-        draw(row+2, col+7,  f, block::full);
-        draw(row+2, col+8,  f, block::full);
-        draw(row+2, col+9,  f, block::lower_half);
-        draw(row+2, col+10, f, block::lower_left_quadrant);
+            draw(row+2, col+2,  f, block::lower_right_quadrant);
+            draw(row+2, col+3,  f, block::lower_half);
+            draw(row+2, col+4,  f, block::upper_half);
+            draw(row+2, col+5,  f, block::upper_left_quadrant);
 
-        draw(row+3, col+1,  f, block::upper_half);
-        draw(row+3, col+2,  f, block::lower_left_quadrant_missing);
-        draw(row+3, col+3,  f, block::full);
-        draw(row+3, col+4,  f, block::full);
-        draw(row+3, col+5,  f, block::full);
-        draw(row+3, col+6,  f, block::full);
-        draw(row+3, col+7,  f, block::full);
-        draw(row+3, col+8,  f, block::full);
-        draw(row+3, col+9,  f, block::full);
-        draw(row+3, col+10, f, block::lower_right_quadrant_missing);
-        draw(row+3, col+11, f, block::upper_half);
+            draw(row+2, col+7,  f, block::upper_right_quadrant);
+            draw(row+2, col+8,  f, block::upper_half);
+            draw(row+2, col+9,  f, block::lower_half);
+            draw(row+2, col+10, f, block::lower_left_quadrant);
 
-        draw(row+4, col+4,  f, block::upper_half);
-        draw(row+4, col+5,  f, block::lower_left_quadrant_missing);
-        draw(row+4, col+6,  f, block::full);
-        draw(row+4, col+7,  f, block::lower_right_quadrant_missing);
-        draw(row+4, col+8,  f, block::upper_half);
+            draw(row+3, col+1,  f, block::upper_half);
+            draw(row+3, col+2,  f, block::upper_left_lower_right_quadrants);
+            draw(row+3, col+3,  f, block::lower_half);
+            draw(row+3, col+9,  f, block::lower_half);
+            draw(row+3, col+10, f, block::upper_right_lower_left_quadrants);
+            draw(row+3, col+11, f, block::upper_half);
+
+            draw(row+4, col+4,  f, block::upper_half);
+            draw(row+4, col+5,  f, block::upper_left_lower_right_quadrants);
+            draw(row+4, col+6,  f, block::lower_half);
+            draw(row+4, col+7,  f, block::upper_right_lower_left_quadrants);
+            draw(row+4, col+8,  f, block::upper_half);
+        } else {
+            draw(row+1, col+5, f, block::lower_right_quadrant);
+            draw(row+1, col+6, f, block::lower_half);
+            draw(row+1, col+7, f, block::lower_left_quadrant);
+
+            draw(row+2, col+2,  f, block::lower_right_quadrant);
+            draw(row+2, col+3,  f, block::lower_half);
+            draw(row+2, col+4,  f, block::full);
+            draw(row+2, col+5,  f, block::full);
+            draw(row+2, col+6,  f, block::full);
+            draw(row+2, col+7,  f, block::full);
+            draw(row+2, col+8,  f, block::full);
+            draw(row+2, col+9,  f, block::lower_half);
+            draw(row+2, col+10, f, block::lower_left_quadrant);
+
+            draw(row+3, col+1,  f, block::upper_half);
+            draw(row+3, col+2,  f, block::lower_left_quadrant_missing);
+            draw(row+3, col+3,  f, block::full);
+            draw(row+3, col+4,  f, block::full);
+            draw(row+3, col+5,  f, block::full);
+            draw(row+3, col+6,  f, block::full);
+            draw(row+3, col+7,  f, block::full);
+            draw(row+3, col+8,  f, block::full);
+            draw(row+3, col+9,  f, block::full);
+            draw(row+3, col+10, f, block::lower_right_quadrant_missing);
+            draw(row+3, col+11, f, block::upper_half);
+
+            draw(row+4, col+4,  f, block::upper_half);
+            draw(row+4, col+5,  f, block::lower_left_quadrant_missing);
+            draw(row+4, col+6,  f, block::full);
+            draw(row+4, col+7,  f, block::lower_right_quadrant_missing);
+            draw(row+4, col+8,  f, block::upper_half);
+        }
     }
 
     void draw_lr_1(int x, int y, face_colour f, bool left)
@@ -257,54 +324,104 @@ struct pixel_grid
                   + front_cell_skew * x + (left ? top_cell_height * 3 : 0);
         int col = front_cell_width * (x + (left ? 0 : 3));
 
-        if (left) {
-            draw(row+0, col+0, f, block::lower_half);
-            draw(row+0, col+1, f, block::lower_left_quadrant);
+        if (f == face_colour::shadow) {
+            if (left) {
+                draw(row+0, col+0, f, block::lower_half);
+                draw(row+0, col+1, f, block::lower_left_quadrant);
 
-            draw(row+1, col+0, f, block::full);
-            draw(row+1, col+1, f, block::full);
-            draw(row+1, col+2, f, block::full);
-            draw(row+1, col+3, f, block::lower_half);
-            draw(row+1, col+4, f, block::lower_left_quadrant);
+                draw(row+1, col+0, f, block::left_half);
+                draw(row+1, col+1, f, block::upper_right_quadrant);
+                draw(row+1, col+2, f, block::upper_half);
+                draw(row+1, col+3, f, block::lower_half);
+                draw(row+1, col+4, f, block::lower_left_quadrant);
+            } else {
+                draw(row+0, col+0, f, block::lower_half);
+
+                draw(row+1, col+0, f, block::lower_right_quadrant_missing);
+                draw(row+1, col+1, f, block::upper_half);
+                draw(row+1, col+2, f, block::upper_left_lower_right_quadrants);
+                draw(row+1, col+3, f, block::lower_half);
+            }
+
+            draw(row+2, col+0, f, block::left_half);
+            draw(row+2, col+4, f, block::upper_half);
+            draw(row+2, col+5, f, block::lower_left_quadrant_missing);
+
+            if (left) {
+                draw(row+3, col+0, f, block::upper_right_quadrant_missing);
+                draw(row+3, col+1, f, block::lower_half);
+                draw(row+3, col+5, f, block::right_half);
+
+                draw(row+4, col+2, f, block::upper_half);
+                draw(row+4, col+3, f, block::upper_left_lower_right_quadrants);
+                draw(row+4, col+4, f, block::lower_half);
+                draw(row+4, col+5, f, block::upper_left_quadrant_missing);
+
+                draw(row+5, col+5, f, block::upper_half);
+            } else {
+                draw(row+3, col+0, f, block::upper_right_quadrant_missing);
+                draw(row+3, col+1, f, block::lower_left_quadrant);
+                draw(row+3, col+5, f, block::right_half);
+
+                draw(row+4, col+1, f, block::upper_right_quadrant);
+                draw(row+4, col+2, f, block::upper_half);
+                draw(row+4, col+3, f, block::lower_half);
+                draw(row+4, col+4, f, block::lower_left_quadrant);
+                draw(row+4, col+5, f, block::right_half);
+
+                draw(row+5, col+4, f, block::upper_right_quadrant);
+                draw(row+5, col+5, f, block::upper_half);
+            }
         } else {
-            draw(row+0, col+0, f, block::lower_half);
+            if (left) {
+                draw(row+0, col+0, f, block::lower_half);
+                draw(row+0, col+1, f, block::lower_left_quadrant);
 
-            draw(row+1, col+0, f, block::full);
-            draw(row+1, col+1, f, block::full);
-            draw(row+1, col+2, f, block::upper_right_quadrant_missing);
-            draw(row+1, col+3, f, block::lower_half);
-        }
+                draw(row+1, col+0, f, block::full);
+                draw(row+1, col+1, f, block::full);
+                draw(row+1, col+2, f, block::full);
+                draw(row+1, col+3, f, block::lower_half);
+                draw(row+1, col+4, f, block::lower_left_quadrant);
+            } else {
+                draw(row+0, col+0, f, block::lower_half);
 
-        draw(row+2, col+0, f, block::full);
-        draw(row+2, col+1, f, block::full);
-        draw(row+2, col+2, f, block::full);
-        draw(row+2, col+3, f, block::full);
-        draw(row+2, col+4, f, block::full);
-        draw(row+2, col+5, f, block::full);
+                draw(row+1, col+0, f, block::full);
+                draw(row+1, col+1, f, block::full);
+                draw(row+1, col+2, f, block::upper_right_quadrant_missing);
+                draw(row+1, col+3, f, block::lower_half);
+            }
 
-        draw(row+3, col+0, f, block::full);
-        draw(row+3, col+1, f, block::full);
-        draw(row+3, col+2, f, block::full);
-        draw(row+3, col+3, f, block::full);
-        draw(row+3, col+4, f, block::full);
-        draw(row+3, col+5, f, block::full);
+            draw(row+2, col+0, f, block::full);
+            draw(row+2, col+1, f, block::full);
+            draw(row+2, col+2, f, block::full);
+            draw(row+2, col+3, f, block::full);
+            draw(row+2, col+4, f, block::full);
+            draw(row+2, col+5, f, block::full);
 
-        if (left) {
-            draw(row+4, col+2, f, block::upper_half);
-            draw(row+4, col+3, f, block::lower_left_quadrant_missing);
-            draw(row+4, col+4, f, block::full);
-            draw(row+4, col+5, f, block::full);
+            draw(row+3, col+0, f, block::full);
+            draw(row+3, col+1, f, block::full);
+            draw(row+3, col+2, f, block::full);
+            draw(row+3, col+3, f, block::full);
+            draw(row+3, col+4, f, block::full);
+            draw(row+3, col+5, f, block::full);
 
-            draw(row+5, col+5, f, block::upper_half);
-        } else {
-            draw(row+4, col+1, f, block::upper_right_quadrant);
-            draw(row+4, col+2, f, block::upper_half);
-            draw(row+4, col+3, f, block::full);
-            draw(row+4, col+4, f, block::full);
-            draw(row+4, col+5, f, block::full);
+            if (left) {
+                draw(row+4, col+2, f, block::upper_half);
+                draw(row+4, col+3, f, block::lower_left_quadrant_missing);
+                draw(row+4, col+4, f, block::full);
+                draw(row+4, col+5, f, block::full);
 
-            draw(row+5, col+4, f, block::upper_right_quadrant);
-            draw(row+5, col+5, f, block::upper_half);
+                draw(row+5, col+5, f, block::upper_half);
+            } else {
+                draw(row+4, col+1, f, block::upper_right_quadrant);
+                draw(row+4, col+2, f, block::upper_half);
+                draw(row+4, col+3, f, block::full);
+                draw(row+4, col+4, f, block::full);
+                draw(row+4, col+5, f, block::full);
+
+                draw(row+5, col+4, f, block::upper_right_quadrant);
+                draw(row+5, col+5, f, block::upper_half);
+            }
         }
     }
 
@@ -313,54 +430,104 @@ struct pixel_grid
         int row = (front_cell_height * 2 + front_cell_skew * 2) - front_cell_height * y  - front_cell_skew * x + (right ? top_cell_height * 3 : 0);
         int col = front_cell_width * (x + (right ? 3 : 0));
 
-        if (right) {
-            draw(row+0, col+4, f, block::lower_right_quadrant);
-            draw(row+0, col+5, f, block::lower_half);
+        if (f == face_colour::shadow) {
+            if (right) {
+                draw(row+0, col+4, f, block::lower_right_quadrant);
+                draw(row+0, col+5, f, block::lower_half);
 
-            draw(row+1, col+1, f, block::lower_right_quadrant);
-            draw(row+1, col+2, f, block::lower_half);
-            draw(row+1, col+3, f, block::full);
-            draw(row+1, col+4, f, block::full);
-            draw(row+1, col+5, f, block::full);
+                draw(row+1, col+1, f, block::lower_right_quadrant);
+                draw(row+1, col+2, f, block::lower_half);
+                draw(row+1, col+3, f, block::upper_half);
+                draw(row+1, col+4, f, block::upper_left_quadrant);
+                draw(row+1, col+5, f, block::right_half);
+
+                draw(row+2, col+0, f, block::lower_right_quadrant_missing);
+                draw(row+2, col+1, f, block::upper_left_quadrant);
+                draw(row+2, col+5, f, block::right_half);
+            } else {
+                draw(row+0, col+5, f, block::lower_half);
+
+                draw(row+1, col+2, f, block::lower_half);
+                draw(row+1, col+3, f, block::upper_right_lower_left_quadrants);
+                draw(row+1, col+4, f, block::upper_half);
+                draw(row+1, col+5, f, block::lower_left_quadrant_missing);
+
+                draw(row+2, col+0, f, block::lower_right_quadrant_missing);
+                draw(row+2, col+1, f, block::upper_half);
+                draw(row+2, col+5, f, block::right_half);
+            }
+
+            draw(row+3, col+0, f, block::left_half);
+            draw(row+3, col+4, f, block::lower_half);
+            draw(row+3, col+5, f, block::upper_left_quadrant_missing);
+
+            if (right) {
+                draw(row+4, col+0, f, block::upper_right_quadrant_missing);
+                draw(row+4, col+1, f, block::lower_half);
+                draw(row+4, col+2, f, block::upper_right_lower_left_quadrants);
+                draw(row+4, col+3, f, block::upper_half);
+
+                draw(row+5, col+0, f, block::upper_half);
+            } else {
+                draw(row+4, col+0, f, block::left_half);
+                draw(row+4, col+1, f, block::lower_right_quadrant);
+                draw(row+4, col+2, f, block::lower_half);
+                draw(row+4, col+3, f, block::upper_half);
+                draw(row+4, col+4, f, block::upper_left_quadrant);
+
+                draw(row+5, col+0, f, block::upper_half);
+                draw(row+5, col+1, f, block::upper_left_quadrant);
+            }
         } else {
-            draw(row+0, col+5, f, block::lower_half);
+            if (right) {
+                draw(row+0, col+4, f, block::lower_right_quadrant);
+                draw(row+0, col+5, f, block::lower_half);
 
-            draw(row+1, col+2, f, block::lower_half);
-            draw(row+1, col+3, f, block::upper_left_quadrant_missing);
-            draw(row+1, col+4, f, block::full);
-            draw(row+1, col+5, f, block::full);
-        }
+                draw(row+1, col+1, f, block::lower_right_quadrant);
+                draw(row+1, col+2, f, block::lower_half);
+                draw(row+1, col+3, f, block::full);
+                draw(row+1, col+4, f, block::full);
+                draw(row+1, col+5, f, block::full);
+            } else {
+                draw(row+0, col+5, f, block::lower_half);
 
-        draw(row+2, col+0, f, block::full);
-        draw(row+2, col+1, f, block::full);
-        draw(row+2, col+2, f, block::full);
-        draw(row+2, col+3, f, block::full);
-        draw(row+2, col+4, f, block::full);
-        draw(row+2, col+5, f, block::full);
+                draw(row+1, col+2, f, block::lower_half);
+                draw(row+1, col+3, f, block::upper_left_quadrant_missing);
+                draw(row+1, col+4, f, block::full);
+                draw(row+1, col+5, f, block::full);
+            }
 
-        draw(row+3, col+0, f, block::full);
-        draw(row+3, col+1, f, block::full);
-        draw(row+3, col+2, f, block::full);
-        draw(row+3, col+3, f, block::full);
-        draw(row+3, col+4, f, block::full);
-        draw(row+3, col+5, f, block::full);
+            draw(row+2, col+0, f, block::full);
+            draw(row+2, col+1, f, block::full);
+            draw(row+2, col+2, f, block::full);
+            draw(row+2, col+3, f, block::full);
+            draw(row+2, col+4, f, block::full);
+            draw(row+2, col+5, f, block::full);
 
-        if (right) {
-            draw(row+4, col+0, f, block::full);
-            draw(row+4, col+1, f, block::full);
-            draw(row+4, col+2, f, block::lower_right_quadrant_missing);
-            draw(row+4, col+3, f, block::upper_half);
+            draw(row+3, col+0, f, block::full);
+            draw(row+3, col+1, f, block::full);
+            draw(row+3, col+2, f, block::full);
+            draw(row+3, col+3, f, block::full);
+            draw(row+3, col+4, f, block::full);
+            draw(row+3, col+5, f, block::full);
 
-            draw(row+5, col+0, f, block::upper_half);
-        } else {
-            draw(row+4, col+0, f, block::full);
-            draw(row+4, col+1, f, block::full);
-            draw(row+4, col+2, f, block::full);
-            draw(row+4, col+3, f, block::upper_half);
-            draw(row+4, col+4, f, block::upper_left_quadrant);
+            if (right) {
+                draw(row+4, col+0, f, block::full);
+                draw(row+4, col+1, f, block::full);
+                draw(row+4, col+2, f, block::lower_right_quadrant_missing);
+                draw(row+4, col+3, f, block::upper_half);
 
-            draw(row+5, col+0, f, block::upper_half);
-            draw(row+5, col+1, f, block::upper_left_quadrant);
+                draw(row+5, col+0, f, block::upper_half);
+            } else {
+                draw(row+4, col+0, f, block::full);
+                draw(row+4, col+1, f, block::full);
+                draw(row+4, col+2, f, block::full);
+                draw(row+4, col+3, f, block::upper_half);
+                draw(row+4, col+4, f, block::upper_left_quadrant);
+
+                draw(row+5, col+0, f, block::upper_half);
+                draw(row+5, col+1, f, block::upper_left_quadrant);
+            }
         }
     }
 
@@ -507,6 +674,74 @@ void draw(const cube_view& c)
     p.bottom.draw_right_under(0, 0, c.sticker_colour(DBL, L));
     p.bottom.draw_right_under(1, 0, c.sticker_colour(DL,  L));
     p.bottom.draw_right_under(2, 0, c.sticker_colour(DFL, L));
+
+    std::cout << p;
+}
+
+void draw(const cube_view& c, const cube_stickers& stickers)
+{
+    pixel_grid_pair p;
+    /* drawing order matters! */
+    using namespace view_positions;
+    p.top.draw_top(0, 2, c.sticker_colour(UBL, U, stickers.corners));
+    p.top.draw_top(0, 1, c.sticker_colour(UL, U, stickers.edges));
+    p.top.draw_top(1, 2, c.sticker_colour(UB, U, stickers.edges));
+    p.top.draw_top(0, 0, c.sticker_colour(UFL, U, stickers.corners));
+    p.top.draw_top(1, 1, c.sticker_colour(U, stickers.faces));
+    p.top.draw_top(2, 2, c.sticker_colour(UBR, U, stickers.corners));
+    p.top.draw_top(1, 0, c.sticker_colour(UF, U, stickers.edges));
+    p.top.draw_top(2, 1, c.sticker_colour(UR, U, stickers.edges));
+    p.top.draw_top(2, 0, c.sticker_colour(UFR, U, stickers.corners));
+
+    p.top.draw_left(0, 2, c.sticker_colour(UFL, F, stickers.corners));
+    p.top.draw_left(1, 2, c.sticker_colour(UF, F, stickers.edges));
+    p.top.draw_left(2, 2, c.sticker_colour(UFR, F, stickers.corners));
+    p.top.draw_left(0, 1, c.sticker_colour(FL, F, stickers.edges));
+    p.top.draw_left(1, 1, c.sticker_colour(F, stickers.faces));
+    p.top.draw_left(2, 1, c.sticker_colour(FR, F, stickers.edges));
+    p.top.draw_left(0, 0, c.sticker_colour(DFL, F, stickers.corners));
+    p.top.draw_left(1, 0, c.sticker_colour(DF, F, stickers.edges));
+    p.top.draw_left(2, 0, c.sticker_colour(DFR, F, stickers.corners));
+
+    p.top.draw_right(0, 2, c.sticker_colour(UFR, R, stickers.corners));
+    p.top.draw_right(1, 2, c.sticker_colour(UR, R, stickers.edges));
+    p.top.draw_right(2, 2, c.sticker_colour(UBR, R, stickers.corners));
+    p.top.draw_right(0, 1, c.sticker_colour(FR, R, stickers.edges));
+    p.top.draw_right(1, 1, c.sticker_colour(R, stickers.faces));
+    p.top.draw_right(2, 1, c.sticker_colour(BR, R, stickers.edges));
+    p.top.draw_right(0, 0, c.sticker_colour(DFR, R, stickers.corners));
+    p.top.draw_right(1, 0, c.sticker_colour(DR, R, stickers.edges));
+    p.top.draw_right(2, 0, c.sticker_colour(DBR, R, stickers.corners));
+
+    p.bottom.draw_bottom(0, 2, c.sticker_colour(DBL, D, stickers.corners));
+    p.bottom.draw_bottom(0, 1, c.sticker_colour(DB, D, stickers.edges));
+    p.bottom.draw_bottom(1, 2, c.sticker_colour(DL, D, stickers.edges));
+    p.bottom.draw_bottom(0, 0, c.sticker_colour(DBR, D, stickers.corners));
+    p.bottom.draw_bottom(1, 1, c.sticker_colour(D, stickers.faces));
+    p.bottom.draw_bottom(2, 2, c.sticker_colour(DFL, D, stickers.corners));
+    p.bottom.draw_bottom(1, 0, c.sticker_colour(DR, D, stickers.edges));
+    p.bottom.draw_bottom(2, 1, c.sticker_colour(DF, D, stickers.edges));
+    p.bottom.draw_bottom(2, 0, c.sticker_colour(DFR, D, stickers.corners));
+
+    p.bottom.draw_left_under(0, 2, c.sticker_colour(UBR,  B, stickers.corners));
+    p.bottom.draw_left_under(1, 2, c.sticker_colour(UB,   B, stickers.edges));
+    p.bottom.draw_left_under(2, 2, c.sticker_colour(UBL,  B, stickers.corners));
+    p.bottom.draw_left_under(0, 1, c.sticker_colour(BR,   B, stickers.edges));
+    p.bottom.draw_left_under(1, 1, c.sticker_colour(B, stickers.faces));
+    p.bottom.draw_left_under(2, 1, c.sticker_colour(BL,   B, stickers.edges));
+    p.bottom.draw_left_under(0, 0, c.sticker_colour(DBR,  B, stickers.corners));
+    p.bottom.draw_left_under(1, 0, c.sticker_colour(DB,   B, stickers.edges));
+    p.bottom.draw_left_under(2, 0, c.sticker_colour(DBL,  B, stickers.corners));
+
+    p.bottom.draw_right_under(0, 2, c.sticker_colour(UBL, L, stickers.corners));
+    p.bottom.draw_right_under(1, 2, c.sticker_colour(UL,  L, stickers.edges));
+    p.bottom.draw_right_under(2, 2, c.sticker_colour(UFL, L, stickers.corners));
+    p.bottom.draw_right_under(0, 1, c.sticker_colour(BL,  L, stickers.edges));
+    p.bottom.draw_right_under(1, 1, c.sticker_colour(L, stickers.faces));
+    p.bottom.draw_right_under(2, 1, c.sticker_colour(FL,  L, stickers.edges));
+    p.bottom.draw_right_under(0, 0, c.sticker_colour(DBL, L, stickers.corners));
+    p.bottom.draw_right_under(1, 0, c.sticker_colour(DL,  L, stickers.edges));
+    p.bottom.draw_right_under(2, 0, c.sticker_colour(DFL, L, stickers.corners));
 
     std::cout << p;
 }
