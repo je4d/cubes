@@ -610,11 +610,12 @@ struct pixel_grid_pair
     }
 };
 
-void draw(const cube_view& c)
+template <typename Cube>
+void draw(const Cube& c)
 {
     pixel_grid_pair p;
     /* drawing order matters! */
-    using namespace view_positions;
+    using namespace positions;
     p.top.draw_top(0, 2, c.sticker_colour(UBL, U));
     p.top.draw_top(0, 1, c.sticker_colour(UL, U));
     p.top.draw_top(1, 2, c.sticker_colour(UB, U));
@@ -678,11 +679,12 @@ void draw(const cube_view& c)
     std::cout << p;
 }
 
-void draw(const cube_view& c, const cube_stickers& stickers)
+template <typename Cube>
+void draw(const Cube& c, const cube_stickers& stickers)
 {
     pixel_grid_pair p;
     /* drawing order matters! */
-    using namespace view_positions;
+    using namespace positions;
     p.top.draw_top(0, 2, c.sticker_colour(UBL, U, stickers.corners));
     p.top.draw_top(0, 1, c.sticker_colour(UL, U, stickers.edges));
     p.top.draw_top(1, 2, c.sticker_colour(UB, U, stickers.edges));

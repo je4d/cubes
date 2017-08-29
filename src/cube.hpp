@@ -7,6 +7,29 @@
 #include <sstream>
 
 /*
+void pf_hdr() {
+    std::cout << "LR  FB  UD   /  R  L  B  F  D  U\n";
+};
+
+void pf(std::uint64_t faces) {
+    std::ostringstream oss;
+    oss << std::bitset<3 * 3 + 6 * 2>(faces >> 40);
+    auto bitstr = oss.str();
+    auto bsp    = bitstr.begin();
+    for (int i = 0; i < 9; ++i) {
+        if (i and not(i % 3))
+            std::cout << " ";
+        std::cout << *bsp++;
+    }
+    std::cout << "  /  ";
+    for (int i = 0; i < 12; ++i) {
+        if (i and not(i % 2))
+            std::cout << " ";
+        std::cout << *bsp++;
+    }
+    std::cout << std::endl;
+};
+
 auto pc_hdr = [] { std::cout << "Empty   DFR     DBR     DBL     DFL     UFR     UBR     UBL     UFL\n"; };
 auto pc = [](auto corners) {
     std::ostringstream oss;
@@ -165,6 +188,13 @@ namespace face_colours
 
 namespace pieces
 {
+    constexpr face_piece U = face_piece::U;
+    constexpr face_piece D = face_piece::D;
+    constexpr face_piece F = face_piece::F;
+    constexpr face_piece B = face_piece::B;
+    constexpr face_piece L = face_piece::L;
+    constexpr face_piece R = face_piece::R;
+
     constexpr edge_piece UF = edge_piece::UF;
     constexpr edge_piece UL = edge_piece::UL;
     constexpr edge_piece UB = edge_piece::UB;
@@ -281,11 +311,8 @@ private:
               typename Pos,
               typename Orientation,
               std::uint8_t OrBits,
-              std::uint8_t PosBits,
-              std::uint8_t OrStride = PosBits + OrBits,
-              std::uint8_t PosStride = PosBits + OrBits,
-              std::uint8_t OrOff = 0,
-              std::uint8_t PosOff = OrBits
+              std::uint8_t PieceBits,
+              std::uint8_t Offset = 0
               >
     struct state_base
     {
@@ -296,10 +323,8 @@ private:
         using position    = Pos;
         using orientation = Orientation;
 
-        static constexpr idx_t stride = PosBits + OrBits;
+        static constexpr idx_t stride = PieceBits + OrBits;
 
-        // edge   layout: 0bPPPPO, mask: 0b11111<<(5*edge_num)
-        // corner layout: 0bPPPPO, mask: 0b11111<<(5*corner_num)
         struct position_state
         {
             using posrep_t = std::uint8_t;
@@ -352,7 +377,7 @@ private:
 
         constexpr static idx_t shift(position pos) noexcept
         {
-            return stride * static_cast<idx_t>(pos);
+            return stride * static_cast<idx_t>(pos) + Offset;
         }
 
         constexpr position_state operator[](position p) const
@@ -400,31 +425,145 @@ private:
         rep_t rep = 0;
     };
 
+    // faces layout:
+    // P = position, O = orientation, - = unused, * = used by corners
+    //      LR FB UD R L B F D U
+    // 0b---PppPppPppOoOoOoOoOoOo........................................
     struct faces_state : state_base<faces_state,
                                     face_piece,
                                     face_position,
                                     face_orientation,
-                                    2, 0>
+                                    2, 0, 40> // 40 = bits used by corners
     {
+        static constexpr idx_t pos_stride = 3;
+        static constexpr idx_t pos_offset = 52; // corners + face orientation
+
+        enum class face_position_pair : uint8_t
+        {
+            UD,
+            FB,
+            LR,
+        };
+
+        constexpr static face_position_pair pair(face_position fp) noexcept
+        {
+            return static_cast<face_position_pair>(static_cast<idx_t>(fp) >> 1);
+        }
+
+        constexpr static face_position flip(face_position fp) noexcept
+        {
+            return static_cast<face_position>(static_cast<idx_t>(fp)^1);
+        }
+
+        constexpr static faces_state place(face_piece p, face_position_pair pos) noexcept
+        {
+            return {static_cast<rep_t>(p) << shift(pos)};
+        }
+
+        struct pos_mask
+        {
+            constexpr pos_mask(face_position_pair pos) noexcept
+                    : rep{static_cast<rep_t>((1 << pos_stride) - 1)
+                          << faces_state::shift(pos)}
+            {}
+            constexpr pos_mask operator~() const noexcept
+            { return pos_mask{~rep}; }
+            friend constexpr pos_mask operator|(pos_mask a, pos_mask b) noexcept
+            { return pos_mask{a.rep | b.rep}; }
+            friend constexpr pos_mask operator&(pos_mask a, pos_mask b) noexcept
+            { return pos_mask{a.rep & b.rep}; }
+            friend constexpr faces_state operator&(pos_mask    a,
+                                                   faces_state b) noexcept
+            { return faces_state{a.rep & b.rep}; }
+            friend constexpr faces_state operator&(faces_state a,
+                                                   pos_mask    b) noexcept
+            { return faces_state{a.rep & b.rep}; }
+
+//        private:
+            constexpr pos_mask(rep_t rep) noexcept : rep{rep} {}
+
+            rep_t rep;
+        };
+
+        constexpr static idx_t shift(face_position_pair pos) noexcept
+        {
+            return pos_stride * static_cast<idx_t>(pos) + pos_offset;
+        }
+
+        face_piece operator[](face_position p) const
+        {
+            auto pp = pair(p);
+            return static_cast<face_piece>((((*this) & pos_mask(pp)).rep >> shift(pp)) ^ (static_cast<idx_t>(p)&1));
+        }
+
+        constexpr states move(face_position from, face_position_pair to) const noexcept
+        {
+            return place((*this)[from], to);
+        }
+
+        template <face_position_pair... Positions>
+        constexpr static pos_mask make_mask()
+        {
+            return (pos_mask(Positions) | ...);
+        }
+
+        constexpr face_piece piece_at(face_position pos) const
+        {
+            idx_t pos_no = static_cast<idx_t>(pos);
+            idx_t off_face = pos_no&1;
+            auto pos_pair = static_cast<face_position_pair>(pos_no>>1);
+            return static_cast<face_piece>(
+                (((*this) & pos_mask(pos_pair)).rep >> shift(pos_pair)) ^ off_face);
+        }
+
+        /*
+         * stickers
+         */
         using stickers = std::array<face_colour,6>;
         static constexpr stickers standard_stickers = []() {
             using namespace face_colours;
             return stickers{{U, D, F, B, L, R}};
         }();
 
-        static constexpr face_colour
-            sticker_colour(face_position pos, const stickers &stickers)
-        {
-            auto pos_no = static_cast<idx_t>(pos);
-            return stickers[pos_no];
-        }
-
-        static constexpr face_colour sticker_colour(face_position pos)
+        constexpr face_colour sticker_colour(face_position pos) const
         {
             return sticker_colour(pos, standard_stickers);
         }
+
+        constexpr face_colour sticker_colour(face_position   pos,
+                                             const stickers &st) const noexcept
+        {
+            return st[static_cast<idx_t>((*this)[pos])];
+        }
+
+        /*
+         * moves
+         */
+
+        template <position P1, position P2, position P3, position P4>
+        constexpr faces_state rot_90() const noexcept
+        {
+            return (state_base::rot_90<P1, P2, P3, P4>()
+                    & ~make_mask<pair(P1), pair(P2)>())
+                   | move(P1, pair(P2))
+                   | move(P4, pair(P1));
+        }
+
+        template <position P1, position P2, position P3, position P4>
+        constexpr faces_state rot_180() const noexcept
+        {
+            return (state_base::rot_180<P1, P2, P3, P4>()
+                    & ~make_mask<pair(P1), pair(P2)>())
+                   | move(P3, pair(P1))
+                   | move(P4, pair(P2));
+        }
+
     };
 
+    // edges layout:
+    // P = position, O = orientation, - = unused
+    //       DR   DB   DL   DF   FR   BR   BL   FL   UR   UB   UL   UF
+    // 0b----PpppOPpppOPpppOPpppOPPPOOPPPOOPPPOOPPPOOPPPOOPPPOOPPPOOPPPOO
     struct edges_state : state_base<edges_state,
                                     edge_piece,
                                     edge_position,
@@ -482,6 +621,10 @@ private:
         }
     };
 
+    // corners layout:
+    // P = position, O = orientation, - = unused, * = used by edges
+    //                           DBR  DBL  DFL  UFR  UBR  UBL  UFL  DFR
+    // 0b---.....................PppOoPppOoPppOoPppOoPppOoPppOoPppOoPppOo
     struct corners_state : state_base<corners_state,
                                       corner_piece,
                                       corner_position,
@@ -552,6 +695,7 @@ private:
         }
     };
 
+    using face_state   = corners_state::position_state;
     using edge_state   = edges_state::position_state;
     using corner_state = corners_state::position_state;
 
@@ -583,6 +727,10 @@ public:
                  |corner_state{pieces::DBR, upright}.at(positions::DBR)
                  |corner_state{pieces::DFR, upright}.at(positions::DFR))
     {
+        m_faces = m_faces
+                | faces_state::place(pieces::U, faces_state::face_position_pair::UD)
+                | faces_state::place(pieces::F, faces_state::face_position_pair::FB)
+                | faces_state::place(pieces::L, faces_state::face_position_pair::LR);
     }
 
     template <edge_position... Edges>
@@ -604,14 +752,14 @@ public:
     constexpr face_colour sticker_colour(face_position f) const noexcept
 
     {
-        return faces_state::sticker_colour(f);
+        return m_faces.sticker_colour(f);
     }
 
     constexpr face_colour sticker_colour(face_position        f,
                                          const face_stickers &st) const noexcept
 
     {
-        return faces_state::sticker_colour(f, st);
+        return m_faces.sticker_colour(f, st);
     }
 
     constexpr face_colour sticker_colour(edge_position ep,
@@ -639,6 +787,42 @@ public:
                                          const corner_stickers &st) const noexcept
     {
         return m_corners.sticker_colour(cp, f, st);
+    }
+
+    bool solved() const
+    {
+        using namespace positions;
+        cube c = *this;
+        bool f_is_f;
+        face_position known_good;
+        switch(c.sticker_colour(U))
+        {
+        case face_colour::D: c.x2();
+        case face_colour::U:
+            switch(c.sticker_colour(F))
+            {
+            case face_colour::B: c.y2(); break;
+            case face_colour::L: c.y(); break;
+            case face_colour::R: c.yp(); break;
+            default: break;
+            }
+            return c == cube{};
+        case face_colour::F: c.xp(); known_good = F; break;
+        case face_colour::B: c.x();  known_good = F; break;
+        case face_colour::L: c.zp(); known_good = L; break;
+        case face_colour::R: c.z(); known_good = L; break;
+        default: break;
+        }
+        switch(c.sticker_colour(face_position::U))
+        {
+        case face_colour::D: known_good == F ? c.z2() : c.x2(); break;
+        case face_colour::F: c.xp(); break;
+        case face_colour::B: c.x(); break; // F on F
+        case face_colour::L: c.zp(); break; // L on L
+        case face_colour::R: c.z(); break; // L on L
+        default: break;
+        }
+        return c == cube{};
     }
 
     /*
@@ -739,6 +923,80 @@ public:
         return udfblr_180<UR, BR, DR, FR, UFR, UBR, DBR, DFR>();
     }
 
+    constexpr cube &m() noexcept {
+        using namespace positions;
+        return mes_90<U, F, D, B, UF, DF, DB, UB>();
+    }
+
+    constexpr cube &mp() noexcept {
+        using namespace positions;
+        return mes_90<F, U, B, D, UF, UB, DB, DF>();
+    }
+
+    constexpr cube &m2() noexcept {
+        using namespace positions;
+        return mes_180<F, U, B, D, UF, UB, DB, DF>();
+    }
+
+    constexpr cube &e() noexcept {
+        using namespace positions;
+        return mes_90<L, F, R, B, FL, FR, BR, BL>();
+    }
+
+    constexpr cube &ep() noexcept {
+        using namespace positions;
+        return mes_90<F, L, B, R, FL, BL, BR, FR>();
+    }
+
+    constexpr cube &e2() noexcept {
+        using namespace positions;
+        return mes_180<L, F, R, B, FL, FR, BR, BL>();
+    }
+
+    constexpr cube &s() noexcept {
+        using namespace positions;
+        return mes_90<L, U, R, D, UL, UR, DR, DL>();
+    }
+
+    constexpr cube &sp() noexcept {
+        using namespace positions;
+        return mes_90<U, L, D, R, UL, DL, DR, UR>();
+    }
+
+    constexpr cube &s2() noexcept {
+        using namespace positions;
+        return mes_180<L, U, R, D, UL, UR, DR, DL>();
+    }
+
+    constexpr cube &uw () noexcept { return u ().ep(); }
+    constexpr cube &uwp() noexcept { return up().e (); }
+    constexpr cube &uw2() noexcept { return u2().e2(); }
+    constexpr cube &dw () noexcept { return d ().e (); }
+    constexpr cube &dwp() noexcept { return dp().ep(); }
+    constexpr cube &dw2() noexcept { return d2().e2(); }
+    constexpr cube &fw () noexcept { return f ().s (); }
+    constexpr cube &fwp() noexcept { return fp().sp(); }
+    constexpr cube &fw2() noexcept { return f2().s2(); }
+    constexpr cube &bw () noexcept { return b ().sp(); }
+    constexpr cube &bwp() noexcept { return bp().s (); }
+    constexpr cube &bw2() noexcept { return b2().s2(); }
+    constexpr cube &lw () noexcept { return l ().m (); }
+    constexpr cube &lwp() noexcept { return lp().mp(); }
+    constexpr cube &lw2() noexcept { return l2().m2(); }
+    constexpr cube &rw () noexcept { return r ().mp(); }
+    constexpr cube &rwp() noexcept { return rp().m (); }
+    constexpr cube &rw2() noexcept { return r2().m2(); }
+
+    constexpr cube &x()  noexcept { return rw ().lp(); }
+    constexpr cube &xp() noexcept { return rwp().l();  }
+    constexpr cube &x2() noexcept { return rw2().l2(); }
+    constexpr cube &y()  noexcept { return uw ().dp(); }
+    constexpr cube &yp() noexcept { return uwp().d();  }
+    constexpr cube &y2() noexcept { return uw2().d2(); }
+    constexpr cube &z()  noexcept { return fw ().bp(); }
+    constexpr cube &zp() noexcept { return fwp().b();  }
+    constexpr cube &z2() noexcept { return fw2().b2(); }
+
     /*
      * Associated free functions
      */
@@ -790,10 +1048,42 @@ private:
         return *this;
     }
 
+    template <face_position   F1, face_position   F2,
+              face_position   F3, face_position   F4,
+              edge_position   E1, edge_position   E2,
+              edge_position   E3, edge_position   E4>
+    cube &mes_90()
+    {
+        m_faces = m_faces.rot_90<F1, F2, F3, F4>();
+        m_edges =
+            m_edges.rot_90<E1, E2, E3, E4>().template flip<E1, E2, E3, E4>();
+        return *this;
+    }
+
+    template <face_position   F1, face_position   F2,
+              face_position   F3, face_position   F4,
+              edge_position   E1, edge_position   E2,
+              edge_position   E3, edge_position   E4>
+    cube &mes_180()
+    {
+        m_faces = m_faces.rot_180<F1, F2, F3, F4>();
+        m_edges = m_edges.rot_180<E1, E2, E3, E4>();
+        return *this;
+    }
+
 private:
-    //                            layouts: P = position, O = orientation
-    edges_state   m_edges{};   // layout: 0bPPPPO, mask: 0b11111<<(5*edge_num)
-    corners_state m_corners{}; // layout: 0bPPPOO, mask: 0b11111<<(5*corner_num)
+    // Cube state representation:
+    //  Each of these holds a 64-bit value encoding the state for edges,
+    //  corners and faces respectively.
+    //  Both members of the faces and corners union are effectively active at
+    //  all times. They use different parts of underlying uint64. Due to C++'s
+    //  rules regarding standard layout types and common initial sequences,
+    //  this is actually guaranteed to work.
+    edges_state       m_edges;
+    union {
+        corners_state m_corners;
+        faces_state   m_faces;
+    };
 };
 
 static_assert(sizeof(cube) == 16, "");

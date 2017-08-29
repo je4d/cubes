@@ -6,12 +6,12 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
-#include "cube_view.hpp"
 #include "ascii_cube.hpp"
 
-void apply_moves(cube_view& c, std::string moves)
+template <typename Cube>
+void apply_moves(Cube& c, std::string moves)
 {
-    cube_view c2 = c;
+    Cube c2 = c;
     const char *op_names[18][3] = {
         {"U",  "U'",  "U2" }, {"D",  "D'",  "D2" },
         {"F",  "F'",  "F2" }, {"B",  "B'",  "B2" },
@@ -22,25 +22,25 @@ void apply_moves(cube_view& c, std::string moves)
         {"M",  "M'",  "M2" }, {"E",  "E'",  "E2" },
         {"S",  "S'",  "S2" }, {"X",  "X'",  "X2" },
         {"Y",  "Y'",  "Y2" }, {"Z",  "Z'",  "Z2" }};
-    cube_view &(cube_view::*ops[18][3])() = {
-        {&cube_view::u,  &cube_view::up,  &cube_view::u2},
-        {&cube_view::d,  &cube_view::dp,  &cube_view::d2},
-        {&cube_view::f,  &cube_view::fp,  &cube_view::f2},
-        {&cube_view::b,  &cube_view::bp,  &cube_view::b2},
-        {&cube_view::l,  &cube_view::lp,  &cube_view::l2},
-        {&cube_view::r,  &cube_view::rp,  &cube_view::r2},
-        {&cube_view::uw, &cube_view::uwp, &cube_view::uw2},
-        {&cube_view::dw, &cube_view::dwp, &cube_view::dw2},
-        {&cube_view::fw, &cube_view::fwp, &cube_view::fw2},
-        {&cube_view::bw, &cube_view::bwp, &cube_view::bw2},
-        {&cube_view::lw, &cube_view::lwp, &cube_view::lw2},
-        {&cube_view::rw, &cube_view::rwp, &cube_view::rw2},
-        {&cube_view::m,  &cube_view::mp,  &cube_view::m2},
-        {&cube_view::e,  &cube_view::ep,  &cube_view::e2},
-        {&cube_view::s,  &cube_view::sp,  &cube_view::s2},
-        {&cube_view::x,  &cube_view::xp,  &cube_view::x2},
-        {&cube_view::y,  &cube_view::yp,  &cube_view::y2},
-        {&cube_view::z,  &cube_view::zp,  &cube_view::z2}};
+    Cube &(Cube::*ops[18][3])() = {
+        {&Cube::u,  &Cube::up,  &Cube::u2},
+        {&Cube::d,  &Cube::dp,  &Cube::d2},
+        {&Cube::f,  &Cube::fp,  &Cube::f2},
+        {&Cube::b,  &Cube::bp,  &Cube::b2},
+        {&Cube::l,  &Cube::lp,  &Cube::l2},
+        {&Cube::r,  &Cube::rp,  &Cube::r2},
+        {&Cube::uw, &Cube::uwp, &Cube::uw2},
+        {&Cube::dw, &Cube::dwp, &Cube::dw2},
+        {&Cube::fw, &Cube::fwp, &Cube::fw2},
+        {&Cube::bw, &Cube::bwp, &Cube::bw2},
+        {&Cube::lw, &Cube::lwp, &Cube::lw2},
+        {&Cube::rw, &Cube::rwp, &Cube::rw2},
+        {&Cube::m,  &Cube::mp,  &Cube::m2},
+        {&Cube::e,  &Cube::ep,  &Cube::e2},
+        {&Cube::s,  &Cube::sp,  &Cube::s2},
+        {&Cube::x,  &Cube::xp,  &Cube::x2},
+        {&Cube::y,  &Cube::yp,  &Cube::y2},
+        {&Cube::z,  &Cube::zp,  &Cube::z2}};
     enum
     {
         normal,
@@ -136,7 +136,7 @@ std::string generate_scramble()
 }
 
 int main() {
-    cube_view cv;
+    cube cv;
     cube_stickers cs("....0....111111511.22.22.21.33.33.33...444444.52.55.55");
 
     int move{};
@@ -145,11 +145,11 @@ int main() {
 
     auto reset = [&] {
         move = 1;
-        cv = cube_view{};
+        cv = cube{};
         auto scramble = generate_scramble();
         std::cout << scramble << "\n\n";
         apply_moves(cv, scramble);
-        draw(cv, cs);
+        draw(cv);
         start = std::chrono::system_clock::now();
         now = start;
     };
@@ -167,7 +167,7 @@ int main() {
         if (playing) {
             fmt_time(p) << ", move " << move << "> ";
         } else {
-            p << "sandbox> ";
+            p << "sandbox" << (cv.solved() ? " [solved]" : "") << "> ";
         }
         return p.str();
     };
@@ -189,7 +189,7 @@ int main() {
                 playing = false;
                 cv = decltype(cv){};
                 std::cout << "\n";
-                draw(cv, cs);
+                draw(cv);
             }
             else if (not playing && line == "play")
             {
@@ -200,8 +200,8 @@ int main() {
             {
                 apply_moves(cv, line);
                 std::cout << "\n";
-                draw(cv, cs);
-                if (playing && cv.cube() == cube{}) {
+                draw(cv);
+                if (playing && cv.solved()) {
                     fmt_time(std::cout << "\n") << u8"    (☞°◡°)☞\n"
                                                 << std::endl;
                     std::this_thread::sleep_for(std::chrono::seconds(1));
