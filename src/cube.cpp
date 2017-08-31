@@ -137,7 +137,7 @@ std::string generate_scramble()
 
 int main() {
     cube cv;
-    cube_stickers cs("....0....111111511.22.22.21.33.33.33...444444.52.55.55");
+    const cube::stickers& cs = cube::standard_stickers; // cube_stickers("....0....111111511.22.22.21.33.33.33...444444.52.55.55");
 
     int move{};
     std::chrono::system_clock::time_point start{}, now{};
@@ -149,7 +149,7 @@ int main() {
         auto scramble = generate_scramble();
         std::cout << scramble << "\n\n";
         apply_moves(cv, scramble);
-        draw(cv);
+        draw(cv, cs);
         start = std::chrono::system_clock::now();
         now = start;
     };
@@ -189,7 +189,7 @@ int main() {
                 playing = false;
                 cv = decltype(cv){};
                 std::cout << "\n";
-                draw(cv);
+                draw(cv, cs);
             }
             else if (not playing && line == "play")
             {
@@ -200,7 +200,7 @@ int main() {
             {
                 apply_moves(cv, line);
                 std::cout << "\n";
-                draw(cv);
+                draw(cv, cs);
                 if (playing && cv.solved()) {
                     fmt_time(std::cout << "\n") << u8"    (☞°◡°)☞\n"
                                                 << std::endl;

@@ -11,6 +11,7 @@
 typedef std::ostream &(*colour_scheme[7])(std::ostream &);
 
 constexpr colour_scheme fg_face_colours = {
+    termcolor::white,
     [](std::ostream &o) -> std::ostream & {
         return o << termcolor::bold << termcolor::white;
     },
@@ -21,7 +22,6 @@ constexpr colour_scheme fg_face_colours = {
     termcolor::green,
     termcolor::red,
     termcolor::yellow,
-    termcolor::white,
     /*
     [](std::ostream &o) -> std::ostream & {
         return o << termcolor::on_white << termcolor::reverse;
@@ -32,11 +32,11 @@ constexpr colour_scheme fg_face_colours = {
 constexpr colour_scheme bg_face_colours = {
     [](std::ostream &o) -> std::ostream & {return o;},
     [](std::ostream &o) -> std::ostream & {return o;},
+    [](std::ostream &o) -> std::ostream & {return o;},
     termcolor::on_blue,
     termcolor::on_green,
     termcolor::on_red,
     termcolor::on_yellow,
-    [](std::ostream &o) -> std::ostream & {return o;},
 };
 
 constexpr bool foreground_only[] = {true, true, false, false, false, false, true};
@@ -610,141 +610,70 @@ struct pixel_grid_pair
     }
 };
 
-template <typename Cube>
-void draw(const Cube& c)
+template <typename Cube, typename ...Args>
+void draw(const Cube& c, const Args& ...args)
 {
     pixel_grid_pair p;
-    /* drawing order matters! */
     using namespace positions;
-    p.top.draw_top(0, 2, c.sticker_colour(UBL, U));
-    p.top.draw_top(0, 1, c.sticker_colour(UL, U));
-    p.top.draw_top(1, 2, c.sticker_colour(UB, U));
-    p.top.draw_top(0, 0, c.sticker_colour(UFL, U));
-    p.top.draw_top(1, 1, c.sticker_colour(U));
-    p.top.draw_top(2, 2, c.sticker_colour(UBR, U));
-    p.top.draw_top(1, 0, c.sticker_colour(UF, U));
-    p.top.draw_top(2, 1, c.sticker_colour(UR, U));
-    p.top.draw_top(2, 0, c.sticker_colour(UFR, U));
+    p.top.draw_top(0, 2, c.sticker_colour(UBL, U, args...));
+    p.top.draw_top(0, 1, c.sticker_colour(UL, U, args...));
+    p.top.draw_top(1, 2, c.sticker_colour(UB, U, args...));
+    p.top.draw_top(0, 0, c.sticker_colour(UFL, U, args...));
+    p.top.draw_top(1, 1, c.sticker_colour(U, args...));
+    p.top.draw_top(2, 2, c.sticker_colour(UBR, U, args...));
+    p.top.draw_top(1, 0, c.sticker_colour(UF, U, args...));
+    p.top.draw_top(2, 1, c.sticker_colour(UR, U, args...));
+    p.top.draw_top(2, 0, c.sticker_colour(UFR, U, args...));
 
-    p.top.draw_left(0, 2, c.sticker_colour(UFL, F));
-    p.top.draw_left(1, 2, c.sticker_colour(UF, F));
-    p.top.draw_left(2, 2, c.sticker_colour(UFR, F));
-    p.top.draw_left(0, 1, c.sticker_colour(FL, F));
-    p.top.draw_left(1, 1, c.sticker_colour(F));
-    p.top.draw_left(2, 1, c.sticker_colour(FR, F));
-    p.top.draw_left(0, 0, c.sticker_colour(DFL, F));
-    p.top.draw_left(1, 0, c.sticker_colour(DF, F));
-    p.top.draw_left(2, 0, c.sticker_colour(DFR, F));
+    p.top.draw_left(0, 2, c.sticker_colour(UFL, F, args...));
+    p.top.draw_left(1, 2, c.sticker_colour(UF, F, args...));
+    p.top.draw_left(2, 2, c.sticker_colour(UFR, F, args...));
+    p.top.draw_left(0, 1, c.sticker_colour(FL, F, args...));
+    p.top.draw_left(1, 1, c.sticker_colour(F, args...));
+    p.top.draw_left(2, 1, c.sticker_colour(FR, F, args...));
+    p.top.draw_left(0, 0, c.sticker_colour(DFL, F, args...));
+    p.top.draw_left(1, 0, c.sticker_colour(DF, F, args...));
+    p.top.draw_left(2, 0, c.sticker_colour(DFR, F, args...));
 
-    p.top.draw_right(0, 2, c.sticker_colour(UFR, R));
-    p.top.draw_right(1, 2, c.sticker_colour(UR, R));
-    p.top.draw_right(2, 2, c.sticker_colour(UBR, R));
-    p.top.draw_right(0, 1, c.sticker_colour(FR, R));
-    p.top.draw_right(1, 1, c.sticker_colour(R));
-    p.top.draw_right(2, 1, c.sticker_colour(BR, R));
-    p.top.draw_right(0, 0, c.sticker_colour(DFR, R));
-    p.top.draw_right(1, 0, c.sticker_colour(DR, R));
-    p.top.draw_right(2, 0, c.sticker_colour(DBR, R));
+    p.top.draw_right(0, 2, c.sticker_colour(UFR, R, args...));
+    p.top.draw_right(1, 2, c.sticker_colour(UR, R, args...));
+    p.top.draw_right(2, 2, c.sticker_colour(UBR, R, args...));
+    p.top.draw_right(0, 1, c.sticker_colour(FR, R, args...));
+    p.top.draw_right(1, 1, c.sticker_colour(R, args...));
+    p.top.draw_right(2, 1, c.sticker_colour(BR, R, args...));
+    p.top.draw_right(0, 0, c.sticker_colour(DFR, R, args...));
+    p.top.draw_right(1, 0, c.sticker_colour(DR, R, args...));
+    p.top.draw_right(2, 0, c.sticker_colour(DBR, R, args...));
 
-    p.bottom.draw_bottom(0, 2, c.sticker_colour(DBL, D));
-    p.bottom.draw_bottom(0, 1, c.sticker_colour(DB, D));
-    p.bottom.draw_bottom(1, 2, c.sticker_colour(DL, D));
-    p.bottom.draw_bottom(0, 0, c.sticker_colour(DBR, D));
-    p.bottom.draw_bottom(1, 1, c.sticker_colour(D));
-    p.bottom.draw_bottom(2, 2, c.sticker_colour(DFL, D));
-    p.bottom.draw_bottom(1, 0, c.sticker_colour(DR, D));
-    p.bottom.draw_bottom(2, 1, c.sticker_colour(DF, D));
-    p.bottom.draw_bottom(2, 0, c.sticker_colour(DFR, D));
+    p.bottom.draw_bottom(0, 2, c.sticker_colour(DBL, D, args...));
+    p.bottom.draw_bottom(0, 1, c.sticker_colour(DB, D, args...));
+    p.bottom.draw_bottom(1, 2, c.sticker_colour(DL, D, args...));
+    p.bottom.draw_bottom(0, 0, c.sticker_colour(DBR, D, args...));
+    p.bottom.draw_bottom(1, 1, c.sticker_colour(D, args...));
+    p.bottom.draw_bottom(2, 2, c.sticker_colour(DFL, D, args...));
+    p.bottom.draw_bottom(1, 0, c.sticker_colour(DR, D, args...));
+    p.bottom.draw_bottom(2, 1, c.sticker_colour(DF, D, args...));
+    p.bottom.draw_bottom(2, 0, c.sticker_colour(DFR, D, args...));
 
-    p.bottom.draw_left_under(0, 2, c.sticker_colour(UBR,  B));
-    p.bottom.draw_left_under(1, 2, c.sticker_colour(UB,   B));
-    p.bottom.draw_left_under(2, 2, c.sticker_colour(UBL,  B));
-    p.bottom.draw_left_under(0, 1, c.sticker_colour(BR,   B));
-    p.bottom.draw_left_under(1, 1, c.sticker_colour(B));
-    p.bottom.draw_left_under(2, 1, c.sticker_colour(BL,   B));
-    p.bottom.draw_left_under(0, 0, c.sticker_colour(DBR,  B));
-    p.bottom.draw_left_under(1, 0, c.sticker_colour(DB,   B));
-    p.bottom.draw_left_under(2, 0, c.sticker_colour(DBL,  B));
+    p.bottom.draw_left_under(0, 2, c.sticker_colour(UBR,  B, args...));
+    p.bottom.draw_left_under(1, 2, c.sticker_colour(UB,   B, args...));
+    p.bottom.draw_left_under(2, 2, c.sticker_colour(UBL,  B, args...));
+    p.bottom.draw_left_under(0, 1, c.sticker_colour(BR,   B, args...));
+    p.bottom.draw_left_under(1, 1, c.sticker_colour(B, args...));
+    p.bottom.draw_left_under(2, 1, c.sticker_colour(BL,   B, args...));
+    p.bottom.draw_left_under(0, 0, c.sticker_colour(DBR,  B, args...));
+    p.bottom.draw_left_under(1, 0, c.sticker_colour(DB,   B, args...));
+    p.bottom.draw_left_under(2, 0, c.sticker_colour(DBL,  B, args...));
 
-    p.bottom.draw_right_under(0, 2, c.sticker_colour(UBL, L));
-    p.bottom.draw_right_under(1, 2, c.sticker_colour(UL,  L));
-    p.bottom.draw_right_under(2, 2, c.sticker_colour(UFL, L));
-    p.bottom.draw_right_under(0, 1, c.sticker_colour(BL,  L));
-    p.bottom.draw_right_under(1, 1, c.sticker_colour(L));
-    p.bottom.draw_right_under(2, 1, c.sticker_colour(FL,  L));
-    p.bottom.draw_right_under(0, 0, c.sticker_colour(DBL, L));
-    p.bottom.draw_right_under(1, 0, c.sticker_colour(DL,  L));
-    p.bottom.draw_right_under(2, 0, c.sticker_colour(DFL, L));
-
-    std::cout << p;
-}
-
-template <typename Cube>
-void draw(const Cube& c, const cube_stickers& stickers)
-{
-    pixel_grid_pair p;
-    /* drawing order matters! */
-    using namespace positions;
-    p.top.draw_top(0, 2, c.sticker_colour(UBL, U, stickers.corners));
-    p.top.draw_top(0, 1, c.sticker_colour(UL, U, stickers.edges));
-    p.top.draw_top(1, 2, c.sticker_colour(UB, U, stickers.edges));
-    p.top.draw_top(0, 0, c.sticker_colour(UFL, U, stickers.corners));
-    p.top.draw_top(1, 1, c.sticker_colour(U, stickers.faces));
-    p.top.draw_top(2, 2, c.sticker_colour(UBR, U, stickers.corners));
-    p.top.draw_top(1, 0, c.sticker_colour(UF, U, stickers.edges));
-    p.top.draw_top(2, 1, c.sticker_colour(UR, U, stickers.edges));
-    p.top.draw_top(2, 0, c.sticker_colour(UFR, U, stickers.corners));
-
-    p.top.draw_left(0, 2, c.sticker_colour(UFL, F, stickers.corners));
-    p.top.draw_left(1, 2, c.sticker_colour(UF, F, stickers.edges));
-    p.top.draw_left(2, 2, c.sticker_colour(UFR, F, stickers.corners));
-    p.top.draw_left(0, 1, c.sticker_colour(FL, F, stickers.edges));
-    p.top.draw_left(1, 1, c.sticker_colour(F, stickers.faces));
-    p.top.draw_left(2, 1, c.sticker_colour(FR, F, stickers.edges));
-    p.top.draw_left(0, 0, c.sticker_colour(DFL, F, stickers.corners));
-    p.top.draw_left(1, 0, c.sticker_colour(DF, F, stickers.edges));
-    p.top.draw_left(2, 0, c.sticker_colour(DFR, F, stickers.corners));
-
-    p.top.draw_right(0, 2, c.sticker_colour(UFR, R, stickers.corners));
-    p.top.draw_right(1, 2, c.sticker_colour(UR, R, stickers.edges));
-    p.top.draw_right(2, 2, c.sticker_colour(UBR, R, stickers.corners));
-    p.top.draw_right(0, 1, c.sticker_colour(FR, R, stickers.edges));
-    p.top.draw_right(1, 1, c.sticker_colour(R, stickers.faces));
-    p.top.draw_right(2, 1, c.sticker_colour(BR, R, stickers.edges));
-    p.top.draw_right(0, 0, c.sticker_colour(DFR, R, stickers.corners));
-    p.top.draw_right(1, 0, c.sticker_colour(DR, R, stickers.edges));
-    p.top.draw_right(2, 0, c.sticker_colour(DBR, R, stickers.corners));
-
-    p.bottom.draw_bottom(0, 2, c.sticker_colour(DBL, D, stickers.corners));
-    p.bottom.draw_bottom(0, 1, c.sticker_colour(DB, D, stickers.edges));
-    p.bottom.draw_bottom(1, 2, c.sticker_colour(DL, D, stickers.edges));
-    p.bottom.draw_bottom(0, 0, c.sticker_colour(DBR, D, stickers.corners));
-    p.bottom.draw_bottom(1, 1, c.sticker_colour(D, stickers.faces));
-    p.bottom.draw_bottom(2, 2, c.sticker_colour(DFL, D, stickers.corners));
-    p.bottom.draw_bottom(1, 0, c.sticker_colour(DR, D, stickers.edges));
-    p.bottom.draw_bottom(2, 1, c.sticker_colour(DF, D, stickers.edges));
-    p.bottom.draw_bottom(2, 0, c.sticker_colour(DFR, D, stickers.corners));
-
-    p.bottom.draw_left_under(0, 2, c.sticker_colour(UBR,  B, stickers.corners));
-    p.bottom.draw_left_under(1, 2, c.sticker_colour(UB,   B, stickers.edges));
-    p.bottom.draw_left_under(2, 2, c.sticker_colour(UBL,  B, stickers.corners));
-    p.bottom.draw_left_under(0, 1, c.sticker_colour(BR,   B, stickers.edges));
-    p.bottom.draw_left_under(1, 1, c.sticker_colour(B, stickers.faces));
-    p.bottom.draw_left_under(2, 1, c.sticker_colour(BL,   B, stickers.edges));
-    p.bottom.draw_left_under(0, 0, c.sticker_colour(DBR,  B, stickers.corners));
-    p.bottom.draw_left_under(1, 0, c.sticker_colour(DB,   B, stickers.edges));
-    p.bottom.draw_left_under(2, 0, c.sticker_colour(DBL,  B, stickers.corners));
-
-    p.bottom.draw_right_under(0, 2, c.sticker_colour(UBL, L, stickers.corners));
-    p.bottom.draw_right_under(1, 2, c.sticker_colour(UL,  L, stickers.edges));
-    p.bottom.draw_right_under(2, 2, c.sticker_colour(UFL, L, stickers.corners));
-    p.bottom.draw_right_under(0, 1, c.sticker_colour(BL,  L, stickers.edges));
-    p.bottom.draw_right_under(1, 1, c.sticker_colour(L, stickers.faces));
-    p.bottom.draw_right_under(2, 1, c.sticker_colour(FL,  L, stickers.edges));
-    p.bottom.draw_right_under(0, 0, c.sticker_colour(DBL, L, stickers.corners));
-    p.bottom.draw_right_under(1, 0, c.sticker_colour(DL,  L, stickers.edges));
-    p.bottom.draw_right_under(2, 0, c.sticker_colour(DFL, L, stickers.corners));
-
+    p.bottom.draw_right_under(0, 2, c.sticker_colour(UBL, L, args...));
+    p.bottom.draw_right_under(1, 2, c.sticker_colour(UL,  L, args...));
+    p.bottom.draw_right_under(2, 2, c.sticker_colour(UFL, L, args...));
+    p.bottom.draw_right_under(0, 1, c.sticker_colour(BL,  L, args...));
+    p.bottom.draw_right_under(1, 1, c.sticker_colour(L, args...));
+    p.bottom.draw_right_under(2, 1, c.sticker_colour(FL,  L, args...));
+    p.bottom.draw_right_under(0, 0, c.sticker_colour(DBL, L, args...));
+    p.bottom.draw_right_under(1, 0, c.sticker_colour(DL,  L, args...));
+    p.bottom.draw_right_under(2, 0, c.sticker_colour(DFL, L, args...));
     std::cout << p;
 }
 

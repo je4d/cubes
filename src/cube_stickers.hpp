@@ -1,11 +1,13 @@
 #ifndef CUBE_STICKERS_HPP
 #define CUBE_STICKERS_HPP
 
-struct cube_stickers
+#include "cube.hpp"
+
+struct cube_stickers : cube::stickers
 {
     face_colour colour(char c)
     {
-        return c == '.' ? face_colour::shadow : static_cast<face_colour>(c - '0');
+        return c == '.' ? face_colour::shadow : static_cast<face_colour>(c - '0' + 1);
     }
 
     template <typename E>
@@ -72,10 +74,6 @@ struct cube_stickers
         edges[u8(BR)][0]    = colour(stickers[52]);
         corners[u8(DBR)][1] = colour(stickers[53]);
     }
-
-    cube::face_stickers   faces;
-    cube::edge_stickers   edges;
-    cube::corner_stickers corners;
 };
 
 #endif // CUBE_STICKERS_HPP
