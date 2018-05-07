@@ -665,6 +665,12 @@ private:
         {
             return {rep ^ ((rep_t{2} << shift(Faces)) | ...)};
         }
+
+        constexpr faces_state reset_orientations() const noexcept
+        {
+            using namespace positions;
+            return *this & ~state_base::make_mask<U, D, F, B, L, R>();
+        }
     };
 
     // edges layout:
@@ -886,6 +892,7 @@ public:
     {
         using namespace positions;
         cube c = *this;
+        c.m_faces = c.m_faces.reset_orientations();
         bool f_is_f;
         face_position known_good;
         switch(c.sticker_colour(U))
