@@ -78,13 +78,23 @@ void apply_moves(Cube& c, std::string moves)
         reset();
         return ret;
     };
+    int cpos = 0;
     for (auto ch : moves)
     {
+        ++cpos;
         if (not handle_modifier_state(ch))
         {
             state = modifier;
             switch (std::toupper(ch)) {
                 using namespace positions;
+            case '-':
+            case '(':
+            case ')':
+            case '*':
+            case ' ':
+            case '\t':
+                state = normal;
+                continue;
             case 'U': move_base =  0; break;
             case 'D': move_base =  1; break;
             case 'F': move_base =  2; break;
@@ -98,14 +108,8 @@ void apply_moves(Cube& c, std::string moves)
             case 'Y': move_base = 16; break;
             case 'Z': move_base = 17; break;
             default:
-                if (std::isspace(ch)) {
-                    state = normal;
-                    continue;
-                } else {
-                    std::cout << "parse error\n";
-                    return;
-                }
-                break;
+                std::cout << "parse error at character " << cpos << " in \"" << moves << "\"\n";
+                return;
             }
         }
     }
