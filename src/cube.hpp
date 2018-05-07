@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <bitset>
 #include <sstream>
+#include <iosfwd>
 
 /*
 void pf_hdr() {
@@ -248,6 +249,98 @@ namespace positions
     constexpr corner_position DBL = corner_position::DBL;
     constexpr corner_position DBR = corner_position::DBR;
     constexpr corner_position DFR = corner_position::DFR;
+}
+
+enum class move : int8_t
+{
+    // Face turns
+    U, Up, Uʹ = Up, U2,
+    D, Dp, Dʹ = Dp, D2,
+    F, Fp, Fʹ = Fp, F2,
+    B, Bp, Bʹ = Bp, B2,
+    L, Lp, Lʹ = Lp, L2,
+    R, Rp, Rʹ = Rp, R2,
+
+    // Deep face turns
+    Uw, Uwp, Uwʹ = Uwp, Uw2,
+    Dw, Dwp, Dwʹ = Dwp, Dw2,
+    Fw, Fwp, Fwʹ = Fwp, Fw2,
+    Bw, Bwp, Bwʹ = Bwp, Bw2,
+    Lw, Lwp, Lwʹ = Lwp, Lw2,
+    Rw, Rwp, Rwʹ = Rwp, Rw2,
+
+    // Slices
+    M, Mp, Mʹ = Mp, M2,
+    E, Ep, Eʹ = Ep, E2,
+    S, Sp, Sʹ = Sp, S2,
+
+    // Whole cube rotations
+    X, Xp, Xʹ = Xp, X2,
+    Y, Yp, Yʹ = Yp, Y2,
+    Z, Zp, Zʹ = Zp, Z2
+};
+
+std::ostream& operator<<(std::ostream& o, move m)
+{
+    static constexpr auto move_names = []() constexpr {
+        std::array<const char*, 54> ret{};
+        ret[static_cast<std::size_t>(move::U)]   = "U";
+        ret[static_cast<std::size_t>(move::Up)]  = "Uʹ";
+        ret[static_cast<std::size_t>(move::U2)]  = "U2";
+        ret[static_cast<std::size_t>(move::D)]   = "D";
+        ret[static_cast<std::size_t>(move::Dp)]  = "Dʹ";
+        ret[static_cast<std::size_t>(move::D2)]  = "D2";
+        ret[static_cast<std::size_t>(move::F)]   = "F";
+        ret[static_cast<std::size_t>(move::Fp)]  = "Fʹ";
+        ret[static_cast<std::size_t>(move::F2)]  = "F2";
+        ret[static_cast<std::size_t>(move::B)]   = "B";
+        ret[static_cast<std::size_t>(move::Bp)]  = "Bʹ";
+        ret[static_cast<std::size_t>(move::B2)]  = "B2";
+        ret[static_cast<std::size_t>(move::L)]   = "L";
+        ret[static_cast<std::size_t>(move::Lp)]  = "Lʹ";
+        ret[static_cast<std::size_t>(move::L2)]  = "L2";
+        ret[static_cast<std::size_t>(move::R)]   = "R";
+        ret[static_cast<std::size_t>(move::Rp)]  = "Rʹ";
+        ret[static_cast<std::size_t>(move::R2)]  = "R2";
+        ret[static_cast<std::size_t>(move::Uw)]  = "Uw";
+        ret[static_cast<std::size_t>(move::Uwp)] = "Uwʹ";
+        ret[static_cast<std::size_t>(move::Uw2)] = "Uw2";
+        ret[static_cast<std::size_t>(move::Dw)]  = "Dw";
+        ret[static_cast<std::size_t>(move::Dwp)] = "Dwʹ";
+        ret[static_cast<std::size_t>(move::Dw2)] = "Dw2";
+        ret[static_cast<std::size_t>(move::Fw)]  = "Fw";
+        ret[static_cast<std::size_t>(move::Fwp)] = "Fwʹ";
+        ret[static_cast<std::size_t>(move::Fw2)] = "Fw2";
+        ret[static_cast<std::size_t>(move::Bw)]  = "Bw";
+        ret[static_cast<std::size_t>(move::Bwp)] = "Bwʹ";
+        ret[static_cast<std::size_t>(move::Bw2)] = "Bw2";
+        ret[static_cast<std::size_t>(move::Lw)]  = "Lw";
+        ret[static_cast<std::size_t>(move::Lwp)] = "Lwʹ";
+        ret[static_cast<std::size_t>(move::Lw2)] = "Lw2";
+        ret[static_cast<std::size_t>(move::Rw)]  = "Rw";
+        ret[static_cast<std::size_t>(move::Rwp)] = "Rwʹ";
+        ret[static_cast<std::size_t>(move::Rw2)] = "Rw2";
+        ret[static_cast<std::size_t>(move::M)]   = "M";
+        ret[static_cast<std::size_t>(move::Mp)]  = "Mʹ";
+        ret[static_cast<std::size_t>(move::M2)]  = "M2";
+        ret[static_cast<std::size_t>(move::E)]   = "E";
+        ret[static_cast<std::size_t>(move::Ep)]  = "Eʹ";
+        ret[static_cast<std::size_t>(move::E2)]  = "E2";
+        ret[static_cast<std::size_t>(move::S)]   = "S";
+        ret[static_cast<std::size_t>(move::Sp)]  = "Sʹ";
+        ret[static_cast<std::size_t>(move::S2)]  = "S2";
+        ret[static_cast<std::size_t>(move::X)]   = "X";
+        ret[static_cast<std::size_t>(move::Xp)]  = "Xʹ";
+        ret[static_cast<std::size_t>(move::X2)]  = "X2";
+        ret[static_cast<std::size_t>(move::Y)]   = "Y";
+        ret[static_cast<std::size_t>(move::Yp)]  = "Yʹ";
+        ret[static_cast<std::size_t>(move::Y2)]  = "Y2";
+        ret[static_cast<std::size_t>(move::Z)]   = "Z";
+        ret[static_cast<std::size_t>(move::Zp)]  = "Zʹ";
+        ret[static_cast<std::size_t>(move::Z2)]  = "Z2";
+        return ret;
+    }();
+    return o << move_names[static_cast<std::size_t>(m)];
 }
 
 /* Cube state representation */
@@ -829,6 +922,11 @@ public:
      * Moves
      */
 
+    constexpr cube& apply(move m) noexcept
+    {
+        return (this->*(m_move_fns[static_cast<std::size_t>(m)]))();
+    }
+
     constexpr cube& u() noexcept
     {
         using namespace positions;
@@ -1087,6 +1185,64 @@ private:
         return *this;
     }
 
+    static constexpr auto m_move_fns = []() constexpr {
+        std::array<cube &(cube::*)() noexcept, 54> ret{};
+        ret[static_cast<std::size_t>(move::U)]   = &cube::u;
+        ret[static_cast<std::size_t>(move::Up)]  = &cube::up;
+        ret[static_cast<std::size_t>(move::U2)]  = &cube::u2;
+        ret[static_cast<std::size_t>(move::D)]   = &cube::d;
+        ret[static_cast<std::size_t>(move::Dp)]  = &cube::dp;
+        ret[static_cast<std::size_t>(move::D2)]  = &cube::d2;
+        ret[static_cast<std::size_t>(move::F)]   = &cube::f;
+        ret[static_cast<std::size_t>(move::Fp)]  = &cube::fp;
+        ret[static_cast<std::size_t>(move::F2)]  = &cube::f2;
+        ret[static_cast<std::size_t>(move::B)]   = &cube::b;
+        ret[static_cast<std::size_t>(move::Bp)]  = &cube::bp;
+        ret[static_cast<std::size_t>(move::B2)]  = &cube::b2;
+        ret[static_cast<std::size_t>(move::L)]   = &cube::l;
+        ret[static_cast<std::size_t>(move::Lp)]  = &cube::lp;
+        ret[static_cast<std::size_t>(move::L2)]  = &cube::l2;
+        ret[static_cast<std::size_t>(move::R)]   = &cube::r;
+        ret[static_cast<std::size_t>(move::Rp)]  = &cube::rp;
+        ret[static_cast<std::size_t>(move::R2)]  = &cube::r2;
+        ret[static_cast<std::size_t>(move::Uw)]  = &cube::uw;
+        ret[static_cast<std::size_t>(move::Uwp)] = &cube::uwp;
+        ret[static_cast<std::size_t>(move::Uw2)] = &cube::uw2;
+        ret[static_cast<std::size_t>(move::Dw)]  = &cube::dw;
+        ret[static_cast<std::size_t>(move::Dwp)] = &cube::dwp;
+        ret[static_cast<std::size_t>(move::Dw2)] = &cube::dw2;
+        ret[static_cast<std::size_t>(move::Fw)]  = &cube::fw;
+        ret[static_cast<std::size_t>(move::Fwp)] = &cube::fwp;
+        ret[static_cast<std::size_t>(move::Fw2)] = &cube::fw2;
+        ret[static_cast<std::size_t>(move::Bw)]  = &cube::bw;
+        ret[static_cast<std::size_t>(move::Bwp)] = &cube::bwp;
+        ret[static_cast<std::size_t>(move::Bw2)] = &cube::bw2;
+        ret[static_cast<std::size_t>(move::Lw)]  = &cube::lw;
+        ret[static_cast<std::size_t>(move::Lwp)] = &cube::lwp;
+        ret[static_cast<std::size_t>(move::Lw2)] = &cube::lw2;
+        ret[static_cast<std::size_t>(move::Rw)]  = &cube::rw;
+        ret[static_cast<std::size_t>(move::Rwp)] = &cube::rwp;
+        ret[static_cast<std::size_t>(move::Rw2)] = &cube::rw2;
+        ret[static_cast<std::size_t>(move::M)]   = &cube::m;
+        ret[static_cast<std::size_t>(move::Mp)]  = &cube::mp;
+        ret[static_cast<std::size_t>(move::M2)]  = &cube::m2;
+        ret[static_cast<std::size_t>(move::E)]   = &cube::e;
+        ret[static_cast<std::size_t>(move::Ep)]  = &cube::ep;
+        ret[static_cast<std::size_t>(move::E2)]  = &cube::e2;
+        ret[static_cast<std::size_t>(move::S)]   = &cube::s;
+        ret[static_cast<std::size_t>(move::Sp)]  = &cube::sp;
+        ret[static_cast<std::size_t>(move::S2)]  = &cube::s2;
+        ret[static_cast<std::size_t>(move::X)]   = &cube::x;
+        ret[static_cast<std::size_t>(move::Xp)]  = &cube::xp;
+        ret[static_cast<std::size_t>(move::X2)]  = &cube::x2;
+        ret[static_cast<std::size_t>(move::Y)]   = &cube::y;
+        ret[static_cast<std::size_t>(move::Yp)]  = &cube::yp;
+        ret[static_cast<std::size_t>(move::Y2)]  = &cube::y2;
+        ret[static_cast<std::size_t>(move::Z)]   = &cube::z;
+        ret[static_cast<std::size_t>(move::Zp)]  = &cube::zp;
+        ret[static_cast<std::size_t>(move::Z2)]  = &cube::z2;
+        return ret;
+    }();
 
     // Cube state representation:
     //  Each of these holds a 64-bit value encoding the state for edges,
