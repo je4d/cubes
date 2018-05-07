@@ -926,6 +926,17 @@ public:
     }
 
     /*
+     * Normalization
+     */
+
+    cube reset_faces() const
+    {
+        cube ret = *this;
+        ret.m_faces = ret.m_faces.reset_orientations();
+        return ret;
+    }
+
+    /*
      * Moves
      */
 
